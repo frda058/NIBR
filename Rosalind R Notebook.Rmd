@@ -1,0 +1,959 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(readr)
+library(plotly)
+library(grid)
+library(reshape2)
+
+#library(extrafont)
+#font_import(pattern = "lmroman")
+#loadfonts()
+#par(family = "LM Roman 10")
+setwd("~/Desktop")
+```
+
+ROSALIND
+
+```{r}
+Rosalind_FlowJo_table <- read_csv("~/Desktop/Rosalind FlowJo table.csv")
+
+Rosalind <- as.data.frame(Rosalind_FlowJo_table)
+Rosalind <- Rosalind %>% select(-contains("Freq"))
+Rosalind <- Rosalind[-c(2,7:8),]
+Rosalind <- Rosalind[,-1]
+
+Rosalind[,1:254] <- sapply(Rosalind[, 1:254], as.numeric)
+
+Rosalind_MFI <- Rosalind %>% select(contains("Median"))
+
+Rosalind_MFI_Peak1 <- Rosalind_MFI %>% select(contains("Peak 1"))
+Rosalind_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Rosalind_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Rosalind_MFI_Peak1 <- Rosalind_MFI_Peak1[,c(18,1:17)]
+
+
+Rosalind_MFI_Peak1_Long <- gather(Rosalind_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Rosalind_MFI_Peak4 <- Rosalind_MFI %>% select(contains("Peak 4"))
+Rosalind_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Rosalind_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Rosalind_MFI_Peak4 <- Rosalind_MFI_Peak4[,c(19,1:18)]
+
+
+Rosalind_MFI_Peak4_Long <- gather(Rosalind_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Rosalind_MFI_Peak4_Long <- Rosalind_MFI_Peak4_Long %>% filter(Fluorochrome != "BUV395")
+
+Rosalind_MFI_Peak4_Long$Difference <- Rosalind_MFI_Peak1_Long$MFI - Rosalind_MFI_Peak4_Long$MFI
+
+Rosalind_MFI_Peak4_Long$'Percent Difference' <- ((Rosalind_MFI_Peak1_Long$MFI - Rosalind_MFI_Peak4_Long$MFI) / Rosalind_MFI_Peak4_Long$MFI) * 100
+
+
+Rosalind4 <- ggplot(Rosalind_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Rosalind: June 14th-18th Peak 4 MFI Data")
+
+
+ggsave("Rosalind4.png", Rosalind4, width = 10, height = 5, units = c("in"))
+
+
+rosalind01 <- ggplot(Rosalind_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Rosalind: June 14th-18th Peak 1 MFI Data")
+
+rosalind01 <- rosalind01+ylim(88000, 105000)
+
+ggsave("rosalind01.png", rosalind01, width = 10, height = 5, units = c("in"))
+
+rosalind001 <- Rosalind_MFI_Peak1_Long %>% ggplot(aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Rosalind: June 14th-18th Peak 1 MFI Data")
+
+rosalind001
+
+ggsave("rosalind01.png", rosalind01, width = 10, height = 5, units = c("in"))
+ggsave("rosalind001.png", rosalind001, width = 10, height = 5, units = c("in"))
+
+#Rosalind_MFI_Ratios
+
+##Alexa700
+Rosalind_Alexa700_2to1 <- Rosalind_MFI$`Alexa700 Peak 2  Median`/Rosalind_MFI$`Alexa700 Peak 1  Median`
+Rosalind_Alexa700_3to2 <- Rosalind_MFI$`Alexa700 Peak 3  Median`/Rosalind_MFI$`Alexa700 Peak 2  Median`
+Rosalind_Alexa700_4to3 <- Rosalind_MFI$`Alexa700 Peak 4  Median`/Rosalind_MFI$`Alexa700 Peak 3  Median`
+Rosalind_Alexa700_5to4 <- Rosalind_MFI$`Alexa700 Peak 5  Median`/Rosalind_MFI$`Alexa700 Peak 4  Median`
+Rosalind_Alexa700_6to5 <- Rosalind_MFI$`Alexa700 Peak 6  Median`/Rosalind_MFI$`Alexa700 Peak 5  Median`
+Rosalind_Alexa700_7to6 <- Rosalind_MFI$`Alexa700 Peak 7  Median`/Rosalind_MFI$`Alexa700 Peak 6  Median`
+Rosalind_Alexa700_8to7 <- Rosalind_MFI$`Alexa700 Peak 8  Median`/Rosalind_MFI$`Alexa700 Peak 7  Median`
+Rosalind_Alexa700_4to1 <- Rosalind_MFI$`Alexa700 Peak 4  Median`/Rosalind_MFI$`Alexa700 Peak 1  Median`
+Rosalind_Alexa700_3to1 <- Rosalind_MFI$`Alexa700 Peak 3  Median`/Rosalind_MFI$`Alexa700 Peak 1  Median`
+
+
+Rosalind_Alexa700_MFI_Ratio <- data.frame(Rosalind_Alexa700_2to1,Rosalind_Alexa700_3to2, Rosalind_Alexa700_4to3, Rosalind_Alexa700_5to4, Rosalind_Alexa700_6to5, Rosalind_Alexa700_7to6, Rosalind_Alexa700_8to7,Rosalind_Alexa700_4to1, Rosalind_Alexa700_3to1)
+
+colnames(Rosalind_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_Alexa700_MFI_Ratio_LONG <- gather(Rosalind_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Rosalind_APC_2to1 <- Rosalind_MFI$`APC Peak 2  Median`/Rosalind_MFI$`APC Peak 1  Median`
+Rosalind_APC_3to2 <- Rosalind_MFI$`APC Peak 3  Median`/Rosalind_MFI$`APC Peak 2  Median`
+Rosalind_APC_4to3 <- Rosalind_MFI$`APC Peak 4  Median`/Rosalind_MFI$`APC Peak 3  Median`
+Rosalind_APC_5to4 <- Rosalind_MFI$`APC Peak 5  Median`/Rosalind_MFI$`APC Peak 4  Median`
+Rosalind_APC_6to5 <- Rosalind_MFI$`APC Peak 6  Median`/Rosalind_MFI$`APC Peak 5  Median`
+Rosalind_APC_7to6 <- Rosalind_MFI$`APC Peak 7  Median`/Rosalind_MFI$`APC Peak 6  Median`
+Rosalind_APC_8to7 <- Rosalind_MFI$`APC Peak 8  Median`/Rosalind_MFI$`APC Peak 7  Median`
+Rosalind_APC_4to1 <- Rosalind_MFI$`APC Peak 4  Median`/Rosalind_MFI$`APC Peak 1  Median`
+Rosalind_APC_3to1 <- Rosalind_MFI$`APC Peak 3  Median`/Rosalind_MFI$`APC Peak 1  Median`
+
+
+Rosalind_APC_MFI_Ratio <- data.frame(Rosalind_APC_2to1,Rosalind_APC_3to2, Rosalind_APC_4to3, Rosalind_APC_5to4, Rosalind_APC_6to5, Rosalind_APC_7to6, Rosalind_APC_8to7, Rosalind_APC_4to1, Rosalind_APC_3to1 )
+
+colnames(Rosalind_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_APC_MFI_Ratio_LONG <- gather(Rosalind_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Rosalind_APC_Cy7_2to1 <- Rosalind_MFI$`APC-Cy7 Peak 2  Median`/Rosalind_MFI$`APC-Cy7 Peak 1  Median`
+Rosalind_APC_Cy7_3to2 <- Rosalind_MFI$`APC-Cy7 Peak 3  Median`/Rosalind_MFI$`APC-Cy7 Peak 2  Median`
+Rosalind_APC_Cy7_4to3 <- Rosalind_MFI$`APC-Cy7 Peak 4  Median`/Rosalind_MFI$`APC-Cy7 Peak 3  Median`
+Rosalind_APC_Cy7_5to4 <- Rosalind_MFI$`APC-Cy7 Peak 5  Median`/Rosalind_MFI$`APC-Cy7 Peak 4  Median`
+Rosalind_APC_Cy7_6to5 <- Rosalind_MFI$`APC-Cy7 Peak 6  Median`/Rosalind_MFI$`APC-Cy7 Peak 5  Median`
+Rosalind_APC_Cy7_7to6 <- Rosalind_MFI$`APC-Cy7 Peak 7  Median`/Rosalind_MFI$`APC-Cy7 Peak 6  Median`
+Rosalind_APC_Cy7_8to7 <- NA
+Rosalind_APC_Cy7_4to1 <- Rosalind_MFI$`APC-Cy7 Peak 4  Median`/Rosalind_MFI$`APC-Cy7 Peak 1  Median`
+Rosalind_APC_Cy7_3to1 <- Rosalind_MFI$`APC-Cy7 Peak 3  Median`/Rosalind_MFI$`APC-Cy7 Peak 1  Median`
+
+Rosalind_APC_Cy7_MFI_Ratio <- data.frame(Rosalind_APC_Cy7_2to1,Rosalind_APC_Cy7_3to2, Rosalind_APC_Cy7_4to3, Rosalind_APC_Cy7_5to4, Rosalind_APC_Cy7_6to5, Rosalind_APC_Cy7_7to6, Rosalind_APC_Cy7_8to7, Rosalind_APC_Cy7_4to1, Rosalind_APC_Cy7_3to1)
+
+colnames(Rosalind_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_APC_Cy7_MFI_Ratio_LONG <- gather(Rosalind_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV395
+
+Rosalind_BUV395_2to1 <- NA
+Rosalind_BUV395_3to2 <- Rosalind_MFI$`BUV395 Peak 3  Median`/Rosalind_MFI$`BUV395 Peak 2  Median`
+Rosalind_BUV395_4to3 <- Rosalind_MFI$`BUV395 Peak 4  Median`/Rosalind_MFI$`BUV395 Peak 3  Median`
+Rosalind_BUV395_5to4 <- Rosalind_MFI$`BUV395 Peak 5  Median`/Rosalind_MFI$`BUV395 Peak 4  Median`
+Rosalind_BUV395_6to5 <- Rosalind_MFI$`BUV395 Peak 6  Median`/Rosalind_MFI$`BUV395 Peak 5  Median`
+Rosalind_BUV395_7to6 <- Rosalind_MFI$`BUV395 Peak 7  Median`/Rosalind_MFI$`BUV395 Peak 6  Median`
+Rosalind_BUV395_8to7 <- Rosalind_MFI$`BUV395 Peak 8  Median`/Rosalind_MFI$`BUV395 Peak 7  Median`
+Rosalind_BUV395_4to1 <- NA
+Rosalind_BUV395_3to1 <- NA
+
+
+Rosalind_BUV395_MFI_Ratio <- data.frame(Rosalind_BUV395_2to1,Rosalind_BUV395_3to2, Rosalind_BUV395_4to3, Rosalind_BUV395_5to4, Rosalind_BUV395_6to5, Rosalind_BUV395_7to6, Rosalind_BUV395_8to7, Rosalind_BUV395_4to1, Rosalind_BUV395_3to1)
+
+colnames(Rosalind_BUV395_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BUV395_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BUV395_MFI_Ratio_LONG <- gather(Rosalind_BUV395_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BUV395_MFI_Ratio_LONG$Fluorochrome <- "BUV395"
+
+##BUV496
+
+Rosalind_BUV496_2to1 <- Rosalind_MFI$`BUV496 Peak 2  Median`/Rosalind_MFI$`BUV496 Peak 1  Median`
+Rosalind_BUV496_3to2 <- Rosalind_MFI$`BUV496 Peak 3  Median`/Rosalind_MFI$`BUV496 Peak 2  Median`
+Rosalind_BUV496_4to3 <- Rosalind_MFI$`BUV496 Peak 4  Median`/Rosalind_MFI$`BUV496 Peak 3  Median`
+Rosalind_BUV496_5to4 <- Rosalind_MFI$`BUV496 Peak 5  Median`/Rosalind_MFI$`BUV496 Peak 4  Median`
+Rosalind_BUV496_6to5 <- Rosalind_MFI$`BUV496 Peak 6  Median`/Rosalind_MFI$`BUV496 Peak 5  Median`
+Rosalind_BUV496_7to6 <- Rosalind_MFI$`BUV496 Peak 7  Median`/Rosalind_MFI$`BUV496 Peak 6  Median`
+Rosalind_BUV496_8to7 <- Rosalind_MFI$`BUV496 Peak 8  Median`/Rosalind_MFI$`BUV496 Peak 7  Median`
+Rosalind_BUV496_4to1 <- Rosalind_MFI$`BUV496 Peak 4  Median`/Rosalind_MFI$`BUV496 Peak 1  Median`
+Rosalind_BUV496_3to1 <- Rosalind_MFI$`BUV496 Peak 3  Median`/Rosalind_MFI$`BUV496 Peak 1  Median`
+
+Rosalind_BUV496_MFI_Ratio <- data.frame(Rosalind_BUV496_2to1,Rosalind_BUV496_3to2, Rosalind_BUV496_4to3, Rosalind_BUV496_5to4, Rosalind_BUV496_6to5, Rosalind_BUV496_7to6, Rosalind_BUV496_8to7, Rosalind_BUV496_4to1, Rosalind_BUV496_3to1)
+
+colnames(Rosalind_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BUV496_MFI_Ratio_LONG <- gather(Rosalind_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Rosalind_BUV737_2to1 <- Rosalind_MFI$`BUV737 Peak 2  Median`/Rosalind_MFI$`BUV737 Peak 1  Median`
+Rosalind_BUV737_3to2 <- Rosalind_MFI$`BUV737 Peak 3  Median`/Rosalind_MFI$`BUV737 Peak 2  Median`
+Rosalind_BUV737_4to3 <- Rosalind_MFI$`BUV737 Peak 4  Median`/Rosalind_MFI$`BUV737 Peak 3  Median`
+Rosalind_BUV737_5to4 <- Rosalind_MFI$`BUV737 Peak 5  Median`/Rosalind_MFI$`BUV737 Peak 4  Median`
+Rosalind_BUV737_6to5 <- NA
+Rosalind_BUV737_7to6 <- NA
+Rosalind_BUV737_8to7 <- NA
+Rosalind_BUV737_4to1 <- Rosalind_MFI$`BUV737 Peak 4  Median`/Rosalind_MFI$`BUV737 Peak 1  Median`
+Rosalind_BUV737_3to1 <- Rosalind_MFI$`BUV737 Peak 3  Median`/Rosalind_MFI$`BUV737 Peak 1  Median`
+
+Rosalind_BUV737_MFI_Ratio <- data.frame(Rosalind_BUV737_2to1,Rosalind_BUV737_3to2, Rosalind_BUV737_4to3, Rosalind_BUV737_5to4, Rosalind_BUV737_6to5, Rosalind_BUV737_7to6, Rosalind_BUV737_8to7, Rosalind_BUV737_4to1, Rosalind_BUV737_3to1)
+
+colnames(Rosalind_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BUV737_MFI_Ratio_LONG <- gather(Rosalind_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Rosalind_BV421_2to1 <- Rosalind_MFI$`BV421 Peak 2  Median`/Rosalind_MFI$`BV421 Peak 1  Median`
+Rosalind_BV421_3to2 <- Rosalind_MFI$`BV421 Peak 3  Median`/Rosalind_MFI$`BV421 Peak 2  Median`
+Rosalind_BV421_4to3 <- Rosalind_MFI$`BV421 Peak 4  Median`/Rosalind_MFI$`BV421 Peak 3  Median`
+Rosalind_BV421_5to4 <- Rosalind_MFI$`BV421 Peak 5  Median`/Rosalind_MFI$`BV421 Peak 4  Median`
+Rosalind_BV421_6to5 <- Rosalind_MFI$`BV421 Peak 6  Median`/Rosalind_MFI$`BV421 Peak 5  Median`
+Rosalind_BV421_7to6 <- Rosalind_MFI$`BV421 Peak 7  Median`/Rosalind_MFI$`BV421 Peak 6  Median`
+Rosalind_BV421_8to7 <- Rosalind_MFI$`BV421 Peak 8  Median`/Rosalind_MFI$`BV421 Peak 7  Median`
+Rosalind_BV421_4to1 <- Rosalind_MFI$`BV421 Peak 4  Median`/Rosalind_MFI$`BV421 Peak 1  Median`
+Rosalind_BV421_3to1 <- Rosalind_MFI$`BV421 Peak 3  Median`/Rosalind_MFI$`BV421 Peak 1  Median`
+
+Rosalind_BV421_MFI_Ratio <- data.frame(Rosalind_BV421_2to1,Rosalind_BV421_3to2, Rosalind_BV421_4to3, Rosalind_BV421_5to4, Rosalind_BV421_6to5, Rosalind_BV421_7to6, Rosalind_BV421_8to7, Rosalind_BV421_4to1, Rosalind_BV421_3to1)
+
+colnames(Rosalind_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV421_MFI_Ratio_LONG <- gather(Rosalind_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Rosalind_BV510_2to1 <- Rosalind_MFI$`BV510 Peak 2  Median`/Rosalind_MFI$`BV510 Peak 1  Median`
+Rosalind_BV510_3to2 <- Rosalind_MFI$`BV510 Peak 3  Median`/Rosalind_MFI$`BV510 Peak 2  Median`
+Rosalind_BV510_4to3 <- Rosalind_MFI$`BV510 Peak 4  Median`/Rosalind_MFI$`BV510 Peak 3  Median`
+Rosalind_BV510_5to4 <- Rosalind_MFI$`BV510 Peak 5  Median`/Rosalind_MFI$`BV510 Peak 4  Median`
+Rosalind_BV510_6to5 <- Rosalind_MFI$`BV510 Peak 6  Median`/Rosalind_MFI$`BV510 Peak 5  Median`
+Rosalind_BV510_7to6 <- Rosalind_MFI$`BV510 Peak 7  Median`/Rosalind_MFI$`BV510 Peak 6  Median`
+Rosalind_BV510_8to7 <- Rosalind_MFI$`BV510 Peak 8  Median`/Rosalind_MFI$`BV510 Peak 7  Median`
+Rosalind_BV510_4to1 <- Rosalind_MFI$`BV510 Peak 4  Median`/Rosalind_MFI$`BV510 Peak 1  Median`
+Rosalind_BV510_3to1 <- Rosalind_MFI$`BV510 Peak 3  Median`/Rosalind_MFI$`BV510 Peak 1  Median`
+
+
+Rosalind_BV510_MFI_Ratio <- data.frame(Rosalind_BV510_2to1,Rosalind_BV510_3to2, Rosalind_BV510_4to3, Rosalind_BV510_5to4, Rosalind_BV510_6to5, Rosalind_BV510_7to6, Rosalind_BV510_8to7, Rosalind_BV510_4to1, Rosalind_BV510_3to1)
+
+colnames(Rosalind_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV510_MFI_Ratio_LONG <- gather(Rosalind_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Rosalind_BV605_2to1 <- Rosalind_MFI$`BV605 Peak 2  Median`/Rosalind_MFI$`BV605 Peak 1  Median`
+Rosalind_BV605_3to2 <- Rosalind_MFI$`BV605 Peak 3  Median`/Rosalind_MFI$`BV605 Peak 2  Median`
+Rosalind_BV605_4to3 <- Rosalind_MFI$`BV605 Peak 4  Median`/Rosalind_MFI$`BV605 Peak 3  Median`
+Rosalind_BV605_5to4 <- Rosalind_MFI$`BV605 Peak 5  Median`/Rosalind_MFI$`BV605 Peak 4  Median`
+Rosalind_BV605_6to5 <- Rosalind_MFI$`BV605 Peak 6  Median`/Rosalind_MFI$`BV605 Peak 5  Median`
+Rosalind_BV605_7to6 <- NA
+Rosalind_BV605_8to7 <- NA
+Rosalind_BV605_4to1 <- Rosalind_MFI$`BV605 Peak 4  Median`/Rosalind_MFI$`BV605 Peak 1  Median`
+Rosalind_BV605_3to1 <- Rosalind_MFI$`BV605 Peak 3  Median`/Rosalind_MFI$`BV605 Peak 1  Median`
+
+Rosalind_BV605_MFI_Ratio <- data.frame(Rosalind_BV605_2to1,Rosalind_BV605_3to2, Rosalind_BV605_4to3, Rosalind_BV605_5to4, Rosalind_BV605_6to5, Rosalind_BV605_7to6, Rosalind_BV605_8to7, Rosalind_BV605_4to1, Rosalind_BV605_3to1)
+
+colnames(Rosalind_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV605_MFI_Ratio_LONG <- gather(Rosalind_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Rosalind_BV650_2to1 <- Rosalind_MFI$`BV650 Peak 2  Median`/Rosalind_MFI$`BV650 Peak 1  Median`
+Rosalind_BV650_3to2 <- Rosalind_MFI$`BV650 Peak 3  Median`/Rosalind_MFI$`BV650 Peak 2  Median`
+Rosalind_BV650_4to3 <- Rosalind_MFI$`BV650 Peak 4  Median`/Rosalind_MFI$`BV650 Peak 3  Median`
+Rosalind_BV650_5to4 <- Rosalind_MFI$`BV650 Peak 5  Median`/Rosalind_MFI$`BV650 Peak 4  Median`
+Rosalind_BV650_6to5 <- Rosalind_MFI$`BV650 Peak 6  Median`/Rosalind_MFI$`BV650 Peak 5  Median`
+Rosalind_BV650_7to6 <- NA
+Rosalind_BV650_8to7 <- NA
+Rosalind_BV650_4to1 <- Rosalind_MFI$`BV650 Peak 4  Median`/Rosalind_MFI$`BV650 Peak 1  Median`
+Rosalind_BV650_3to1 <- Rosalind_MFI$`BV650 Peak 3  Median`/Rosalind_MFI$`BV650 Peak 1  Median`
+
+Rosalind_BV650_MFI_Ratio <- data.frame(Rosalind_BV650_2to1,Rosalind_BV650_3to2, Rosalind_BV650_4to3, Rosalind_BV650_5to4, Rosalind_BV650_6to5, Rosalind_BV650_7to6, Rosalind_BV650_8to7, Rosalind_BV650_4to1, Rosalind_BV650_3to1)
+
+colnames(Rosalind_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV650_MFI_Ratio_LONG <- gather(Rosalind_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Rosalind_BV711_2to1 <- Rosalind_MFI$`BV711 Peak 2  Median`/Rosalind_MFI$`BV711 Peak 1  Median`
+Rosalind_BV711_3to2 <- Rosalind_MFI$`BV711 Peak 3  Median`/Rosalind_MFI$`BV711 Peak 2  Median`
+Rosalind_BV711_4to3 <- Rosalind_MFI$`BV711 Peak 4  Median`/Rosalind_MFI$`BV711 Peak 3  Median`
+Rosalind_BV711_5to4 <- Rosalind_MFI$`BV711 Peak 5  Median`/Rosalind_MFI$`BV711 Peak 4  Median`
+Rosalind_BV711_6to5 <- NA
+Rosalind_BV711_7to6 <- NA
+Rosalind_BV711_8to7 <- NA
+Rosalind_BV711_4to1 <- Rosalind_MFI$`BV711 Peak 4  Median`/Rosalind_MFI$`BV711 Peak 1  Median`
+Rosalind_BV711_3to1 <- Rosalind_MFI$`BV711 Peak 3  Median`/Rosalind_MFI$`BV711 Peak 1  Median`
+
+Rosalind_BV711_MFI_Ratio <- data.frame(Rosalind_BV711_2to1,Rosalind_BV711_3to2, Rosalind_BV711_4to3, Rosalind_BV711_5to4, Rosalind_BV711_6to5, Rosalind_BV711_7to6, Rosalind_BV711_8to7, Rosalind_BV711_4to1, Rosalind_BV711_3to1)
+
+colnames(Rosalind_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV711_MFI_Ratio_LONG <- gather(Rosalind_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Rosalind_BV786_2to1 <- Rosalind_MFI$`BV786 Peak 2  Median`/Rosalind_MFI$`BV786 Peak 1  Median`
+Rosalind_BV786_3to2 <- Rosalind_MFI$`BV786 Peak 3  Median`/Rosalind_MFI$`BV786 Peak 2  Median`
+Rosalind_BV786_4to3 <- Rosalind_MFI$`BV786 Peak 4  Median`/Rosalind_MFI$`BV786 Peak 3  Median`
+Rosalind_BV786_5to4 <- NA
+Rosalind_BV786_6to5 <- NA
+Rosalind_BV786_7to6 <- NA
+Rosalind_BV786_8to7 <- NA
+Rosalind_BV786_4to1 <- Rosalind_MFI$`BV786 Peak 4  Median`/Rosalind_MFI$`BV786 Peak 1  Median`
+Rosalind_BV786_3to1 <- Rosalind_MFI$`BV786 Peak 3  Median`/Rosalind_MFI$`BV786 Peak 1  Median`
+
+Rosalind_BV786_MFI_Ratio <- data.frame(Rosalind_BV786_2to1,Rosalind_BV786_3to2, Rosalind_BV786_4to3, Rosalind_BV786_5to4, Rosalind_BV786_6to5, Rosalind_BV786_7to6, Rosalind_BV786_8to7, Rosalind_BV786_4to1, Rosalind_BV786_3to1)
+
+colnames(Rosalind_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_BV786_MFI_Ratio_LONG <- gather(Rosalind_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Rosalind_FITC_2to1 <- Rosalind_MFI$`FITC Peak 2  Median`/Rosalind_MFI$`FITC Peak 1  Median`
+Rosalind_FITC_3to2 <- Rosalind_MFI$`FITC Peak 3  Median`/Rosalind_MFI$`FITC Peak 2  Median`
+Rosalind_FITC_4to3 <- Rosalind_MFI$`FITC Peak 4  Median`/Rosalind_MFI$`FITC Peak 3  Median`
+Rosalind_FITC_5to4 <- Rosalind_MFI$`FITC Peak 5  Median`/Rosalind_MFI$`FITC Peak 4  Median`
+Rosalind_FITC_6to5 <- Rosalind_MFI$`FITC Peak 6  Median`/Rosalind_MFI$`FITC Peak 5  Median`
+Rosalind_FITC_7to6 <- Rosalind_MFI$`FITC Peak 7  Median`/Rosalind_MFI$`FITC Peak 6  Median`
+Rosalind_FITC_8to7 <- Rosalind_MFI$`FITC Peak 8  Median`/Rosalind_MFI$`FITC Peak 7  Median`
+Rosalind_FITC_4to1 <- Rosalind_MFI$`FITC Peak 4  Median`/Rosalind_MFI$`FITC Peak 1  Median`
+Rosalind_FITC_3to1 <- Rosalind_MFI$`FITC Peak 3  Median`/Rosalind_MFI$`FITC Peak 1  Median`
+
+Rosalind_FITC_MFI_Ratio <- data.frame(Rosalind_FITC_2to1,Rosalind_FITC_3to2, Rosalind_FITC_4to3, Rosalind_FITC_5to4, Rosalind_FITC_6to5, Rosalind_FITC_7to6, Rosalind_FITC_8to7, Rosalind_FITC_4to1, Rosalind_FITC_3to1)
+
+colnames(Rosalind_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_FITC_MFI_Ratio_LONG <- gather(Rosalind_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Rosalind_PE_2to1 <- Rosalind_MFI$`PE Peak 2  Median`/Rosalind_MFI$`PE Peak 1  Median`
+Rosalind_PE_3to2 <- Rosalind_MFI$`PE Peak 3  Median`/Rosalind_MFI$`PE Peak 2  Median`
+Rosalind_PE_4to3 <- Rosalind_MFI$`PE Peak 4  Median`/Rosalind_MFI$`PE Peak 3  Median`
+Rosalind_PE_5to4 <- Rosalind_MFI$`PE Peak 5  Median`/Rosalind_MFI$`PE Peak 4  Median`
+Rosalind_PE_6to5 <- Rosalind_MFI$`PE Peak 6  Median`/Rosalind_MFI$`PE Peak 5  Median`
+Rosalind_PE_7to6 <- Rosalind_MFI$`PE Peak 7  Median`/Rosalind_MFI$`PE Peak 6  Median`
+Rosalind_PE_8to7 <- Rosalind_MFI$`PE Peak 8  Median`/Rosalind_MFI$`PE Peak 7  Median`
+Rosalind_PE_4to1 <- Rosalind_MFI$`PE Peak 4  Median`/Rosalind_MFI$`PE Peak 1  Median`
+Rosalind_PE_3to1 <- Rosalind_MFI$`PE Peak 3  Median`/Rosalind_MFI$`PE Peak 1  Median`
+
+Rosalind_PE_MFI_Ratio <- data.frame(Rosalind_PE_2to1,Rosalind_PE_3to2, Rosalind_PE_4to3, Rosalind_PE_5to4, Rosalind_PE_6to5, Rosalind_PE_7to6, Rosalind_PE_8to7, Rosalind_PE_4to1, Rosalind_PE_3to1)
+
+colnames(Rosalind_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PE_MFI_Ratio_LONG <- gather(Rosalind_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Rosalind_PE_Alexa594_2to1 <- Rosalind_MFI$`PE-Alexa 594 Peak 2  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 1  Median`
+Rosalind_PE_Alexa594_3to2 <- Rosalind_MFI$`PE-Alexa 594 Peak 3  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 2  Median`
+Rosalind_PE_Alexa594_4to3 <- Rosalind_MFI$`PE-Alexa 594 Peak 4  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 3  Median`
+Rosalind_PE_Alexa594_5to4 <- Rosalind_MFI$`PE-Alexa 594 Peak 5  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 4  Median`
+Rosalind_PE_Alexa594_6to5 <- Rosalind_MFI$`PE-Alexa 594 Peak 6  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 5  Median`
+Rosalind_PE_Alexa594_7to6 <- Rosalind_MFI$`PE-Alexa 594 Peak 7  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 6  Median`
+Rosalind_PE_Alexa594_8to7 <- Rosalind_MFI$`PE-Alexa 594 Peak 8  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 7  Median`
+Rosalind_PE_Alexa594_4to1 <- Rosalind_MFI$`PE-Alexa 594 Peak 4  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 1  Median`
+Rosalind_PE_Alexa594_3to1 <- Rosalind_MFI$`PE-Alexa 594 Peak 3  Median`/Rosalind_MFI$`PE-Alexa 594 Peak 1  Median`
+
+Rosalind_PE_Alexa594_MFI_Ratio <- data.frame(Rosalind_PE_Alexa594_2to1,Rosalind_PE_Alexa594_3to2, Rosalind_PE_Alexa594_4to3, Rosalind_PE_Alexa594_5to4, Rosalind_PE_Alexa594_6to5, Rosalind_PE_Alexa594_7to6, Rosalind_PE_Alexa594_8to7, Rosalind_PE_Alexa594_4to1, Rosalind_PE_Alexa594_3to1)
+
+colnames(Rosalind_PE_Alexa594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_PE_Alexa594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PE_Alexa594_MFI_Ratio_LONG <- gather(Rosalind_PE_Alexa594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_PE_Alexa594_MFI_Ratio_LONG$Fluorochrome <- "PE-Alexa594"
+
+
+##PE-Cy5
+
+Rosalind_PE_Cy5_2to1 <- Rosalind_MFI$`PE-Cy5 Peak 2  Median`/Rosalind_MFI$`PE-Cy5 Peak 1  Median`
+Rosalind_PE_Cy5_3to2 <- Rosalind_MFI$`PE-Cy5 Peak 3  Median`/Rosalind_MFI$`PE-Cy5 Peak 2  Median`
+Rosalind_PE_Cy5_4to3 <- Rosalind_MFI$`PE-Cy5 Peak 4  Median`/Rosalind_MFI$`PE-Cy5 Peak 3  Median`
+Rosalind_PE_Cy5_5to4 <- Rosalind_MFI$`PE-Cy5 Peak 5  Median`/Rosalind_MFI$`PE-Cy5 Peak 4  Median`
+Rosalind_PE_Cy5_6to5 <- Rosalind_MFI$`PE-Cy5 Peak 6  Median`/Rosalind_MFI$`PE-Cy5 Peak 5  Median`
+Rosalind_PE_Cy5_7to6 <- Rosalind_MFI$`PE-Cy5 Peak 7  Median`/Rosalind_MFI$`PE-Cy5 Peak 6  Median`
+Rosalind_PE_Cy5_8to7 <- Rosalind_MFI$`PE-Cy5 Peak 8  Median`/Rosalind_MFI$`PE-Cy5 Peak 7  Median`
+Rosalind_PE_Cy5_4to1 <- Rosalind_MFI$`PE-Cy5 Peak 4  Median`/Rosalind_MFI$`PE-Cy5 Peak 1  Median`
+Rosalind_PE_Cy5_3to1 <- Rosalind_MFI$`PE-Cy5 Peak 3  Median`/Rosalind_MFI$`PE-Cy5 Peak 1  Median`
+
+Rosalind_PE_Cy5_MFI_Ratio <- data.frame(Rosalind_PE_Cy5_2to1,Rosalind_PE_Cy5_3to2, Rosalind_PE_Cy5_4to3, Rosalind_PE_Cy5_5to4, Rosalind_PE_Cy5_6to5, Rosalind_PE_Cy5_7to6, Rosalind_PE_Cy5_8to7, Rosalind_PE_Cy5_4to1, Rosalind_PE_Cy5_3to1)
+
+colnames(Rosalind_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PE_Cy5_MFI_Ratio_LONG <- gather(Rosalind_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Rosalind_PE_Cy7_2to1 <- Rosalind_MFI$`PE-Cy7 Peak 2  Median`/Rosalind_MFI$`PE-Cy7 Peak 1  Median`
+Rosalind_PE_Cy7_3to2 <- Rosalind_MFI$`PE-Cy7 Peak 3  Median`/Rosalind_MFI$`PE-Cy7 Peak 2  Median`
+Rosalind_PE_Cy7_4to3 <- Rosalind_MFI$`PE-Cy7 Peak 4  Median`/Rosalind_MFI$`PE-Cy7 Peak 3  Median`
+Rosalind_PE_Cy7_5to4 <- Rosalind_MFI$`PE-Cy7 Peak 5  Median`/Rosalind_MFI$`PE-Cy7 Peak 4  Median`
+Rosalind_PE_Cy7_6to5 <- Rosalind_MFI$`PE-Cy7 Peak 6  Median`/Rosalind_MFI$`PE-Cy7 Peak 5  Median`
+Rosalind_PE_Cy7_7to6 <- Rosalind_MFI$`PE-Cy7 Peak 7  Median`/Rosalind_MFI$`PE-Cy7 Peak 6  Median`
+Rosalind_PE_Cy7_8to7 <- NA
+Rosalind_PE_Cy7_4to1 <- Rosalind_MFI$`PE-Cy7 Peak 4  Median`/Rosalind_MFI$`PE-Cy7 Peak 1  Median`
+Rosalind_PE_Cy7_3to1 <- Rosalind_MFI$`PE-Cy7 Peak 3  Median`/Rosalind_MFI$`PE-Cy7 Peak 1  Median`
+
+Rosalind_PE_Cy7_MFI_Ratio <- data.frame(Rosalind_PE_Cy7_2to1,Rosalind_PE_Cy7_3to2, Rosalind_PE_Cy7_4to3, Rosalind_PE_Cy7_5to4, Rosalind_PE_Cy7_6to5, Rosalind_PE_Cy7_7to6, Rosalind_PE_Cy7_8to7, Rosalind_PE_Cy7_4to1, Rosalind_PE_Cy7_3to1)
+
+colnames(Rosalind_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PE_Cy7_MFI_Ratio_LONG <- gather(Rosalind_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Rosalind_PerCP_Cy5_2to1 <- Rosalind_MFI$`PerCP-Cy5 Peak 2  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 1  Median`
+Rosalind_PerCP_Cy5_3to2 <- Rosalind_MFI$`PerCP-Cy5 Peak 3  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 2  Median`
+Rosalind_PerCP_Cy5_4to3 <- Rosalind_MFI$`PerCP-Cy5 Peak 4  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 3  Median`
+Rosalind_PerCP_Cy5_5to4 <- Rosalind_MFI$`PerCP-Cy5 Peak 5  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 4  Median`
+Rosalind_PerCP_Cy5_6to5 <- Rosalind_MFI$`PerCP-Cy5 Peak 6  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 5  Median`
+Rosalind_PerCP_Cy5_7to6 <- Rosalind_MFI$`PerCP-Cy5 Peak 7  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 6  Median`
+Rosalind_PerCP_Cy5_8to7 <- Rosalind_MFI$`PerCP-Cy5 Peak 8  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 7  Median`
+Rosalind_PerCP_Cy5_4to1 <- Rosalind_MFI$`PerCP-Cy5 Peak 4  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 1  Median`
+Rosalind_PerCP_Cy5_3to1 <- Rosalind_MFI$`PerCP-Cy5 Peak 3  Median`/Rosalind_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Rosalind_PerCP_Cy5_MFI_Ratio <- data.frame(Rosalind_PerCP_Cy5_2to1,Rosalind_PerCP_Cy5_3to2, Rosalind_PerCP_Cy5_4to3, Rosalind_PerCP_Cy5_5to4, Rosalind_PerCP_Cy5_6to5, Rosalind_PerCP_Cy5_7to6, Rosalind_PerCP_Cy5_8to7, Rosalind_PerCP_Cy5_4to1, Rosalind_PerCP_Cy5_3to1)
+
+colnames(Rosalind_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Rosalind_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PerCP_Cy5_MFI_Ratio_LONG <- gather(Rosalind_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Rosalind_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Rosalind_MFI_Ratios Data Frame
+
+
+Rosalind_MFI_Ratios <- rbind(Rosalind_Alexa700_MFI_Ratio_LONG, 
+                           Rosalind_APC_Cy7_MFI_Ratio_LONG, 
+                           Rosalind_APC_MFI_Ratio_LONG, 
+                           Rosalind_BUV395_MFI_Ratio_LONG,
+                           Rosalind_BUV496_MFI_Ratio_LONG,
+                           Rosalind_BUV737_MFI_Ratio_LONG,
+                           Rosalind_BV421_MFI_Ratio_LONG,
+                           Rosalind_BV510_MFI_Ratio_LONG,
+                           Rosalind_BV605_MFI_Ratio_LONG,
+                           Rosalind_BV650_MFI_Ratio_LONG,
+                           Rosalind_BV711_MFI_Ratio_LONG,
+                           Rosalind_BV786_MFI_Ratio_LONG,
+                           Rosalind_FITC_MFI_Ratio_LONG,
+                           Rosalind_PE_MFI_Ratio_LONG,
+                           Rosalind_PE_Alexa594_MFI_Ratio_LONG,
+                           Rosalind_PE_Cy5_MFI_Ratio_LONG,
+                           Rosalind_PE_Cy7_MFI_Ratio_LONG,
+                           Rosalind_PerCP_Cy5_MFI_Ratio_LONG)
+
+
+Rosalind_MFI_PLOT1 <- ggplot(Rosalind_MFI_Ratios, aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Ratio of Peaks by Fluorochrome (Rosalind)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+Rosalind_MFI_PLOT1
+
+
+Rosalind_MFI_PLOT2 <- ggplot(Rosalind_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Rosalind: Variation in Peak Separation (06/14 to 06/18)")
+
+Rosalind_MFI_PLOT2 
+
+ggplot(Rosalind_PE_MFI_Ratio_LONG, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+rosalind1 <- Rosalind_MFI_Ratios %>% filter(Peak != "3:1" & Peak != "4:1") %>% ggplot(aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Rosalind: Ratio of Peaks by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("rosalind1.png", rosalind1, width = 10, height = 5, units = c("in"))
+
+
+rosalind2 <- ggplot(Rosalind_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Rosalind: Variation in Peak Separation (06/14 to 06/18)")
+
+ggsave("rosalind2.png", rosalind2, width = 12, height = 8, units = c("in"))
+
+rosalind12 <- Rosalind_MFI_Ratios %>% filter(Peak == "3:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Rosalind: Peak 3:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+ggsave("rosalind12.png", rosalind12, width = 10, height = 5, units = c("in"))
+
+rosalind13 <- Rosalind_MFI_Ratios %>% filter(Peak == "4:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Rosalind: Peak 4:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+ggsave("rosalind13.png", rosalind13, width = 10, height = 5, units = c("in"))
+
+```
+
+MFI Baseline Difference
+```{r}
+Rosalind_MFI_Day2_Change <- Rosalind_MFI[2,]-Rosalind_MFI[1,]
+Rosalind_MFI_Day3_Change <- Rosalind_MFI[3,]-Rosalind_MFI[1,]
+Rosalind_MFI_Day4_Change <- Rosalind_MFI[4,]-Rosalind_MFI[1,]
+Rosalind_MFI_Day5_Change <- Rosalind_MFI[5,]-Rosalind_MFI[1,]
+
+
+Rosalind_MFI_Difference <- rbind(Rosalind_MFI_Day2_Change, Rosalind_MFI_Day3_Change,Rosalind_MFI_Day4_Change,Rosalind_MFI_Day5_Change)
+
+Rosalind_MFI_Difference$Date <- c("06/15","06/16", "06/17", "06/18")
+
+Rosalind_MFI_Difference_LONG <- gather(Rosalind_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+Rosalind_MFI_Difference_LONG$Peak <- as.character(Rosalind_MFI_Difference_LONG$Peak)
+
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 1  Median"] <- "PE-Alexa594 Peak 1  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 2  Median"] <- "PE-Alexa594 Peak 2  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 3  Median"] <- "PE-Alexa594 Peak 3  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 4  Median"] <- "PE-Alexa594 Peak 4  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 5  Median"] <- "PE-Alexa594 Peak 5  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 6  Median"] <- "PE-Alexa594 Peak 6  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 7  Median"] <- "PE-Alexa594 Peak 7  Median"
+Rosalind_MFI_Difference_LONG$Peak[Rosalind_MFI_Difference_LONG$Peak == "PE-Alexa 594 Peak 8  Median"] <- "PE-Alexa594 Peak 8  Median"
+
+Rosalind_MFI_Difference_LONG <- separate(data = Rosalind_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Rosalind_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Rosalind_MFI_Difference_LONG$Peak))
+
+Rosalind_MFI_Difference_LONG
+
+Rosalind3 <- ggplot(Rosalind_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Rosalind: MFI Difference by Fluorochrome)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#ggsave("Rosalind3.png", Rosalind3, width = 10, height = 5, units = c("in"))
+
+plot1R<- Rosalind_MFI_Difference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Rosalind: Distribution of MFI Difference from Baseline (06/14 to 06/18)') 
+
+#ggsave("plot1R.png", plot1R, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+
+MFI Day to Day Difference
+```{r}
+Rosalind_MFI_Day2D_Change <- Rosalind_MFI[2,]-Rosalind_MFI[1,]
+Rosalind_MFI_Day3D_Change <- Rosalind_MFI[3,]-Rosalind_MFI[2,]
+Rosalind_MFI_Day4D_Change <- Rosalind_MFI[4,]-Rosalind_MFI[3,]
+Rosalind_MFI_Day5D_Change <- Rosalind_MFI[5,]-Rosalind_MFI[4,]
+
+
+Rosalind_MFI_DifferenceDD <- rbind(Rosalind_MFI_Day2D_Change, Rosalind_MFI_Day3D_Change,Rosalind_MFI_Day4D_Change,Rosalind_MFI_Day5D_Change)
+
+Rosalind_MFI_DifferenceDD$Date <- c("06/15","06/16", "06/17", "06/18")
+
+Rosalind_MFI_DifferenceDD_LONG <- gather(Rosalind_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+Rosalind_MFI_DifferenceDD_LONG$Peak <- as.character(Rosalind_MFI_DifferenceDD_LONG$Peak)
+
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 1  Median"] <- "PE-Alexa594 Peak 1  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 2  Median"] <- "PE-Alexa594 Peak 2  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 3  Median"] <- "PE-Alexa594 Peak 3  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 4  Median"] <- "PE-Alexa594 Peak 4  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 5  Median"] <- "PE-Alexa594 Peak 5  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 6  Median"] <- "PE-Alexa594 Peak 6  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 7  Median"] <- "PE-Alexa594 Peak 7  Median"
+Rosalind_MFI_DifferenceDD_LONG$Peak[Rosalind_MFI_DifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 8  Median"] <- "PE-Alexa594 Peak 8  Median"
+
+Rosalind_MFI_DifferenceDD_LONG <- separate(data = Rosalind_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Rosalind_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Rosalind_MFI_DifferenceDD_LONG$Peak))
+
+
+Rosalind3 <- ggplot(Rosalind_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Rosalind: MFI Difference by Fluorochrome)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#ggsave("Rosalind3.png", Rosalind3, width = 10, height = 5, units = c("in"))
+
+plot2R<- Rosalind_MFI_DifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Rosalind: Distribution of MFI Difference Day to Day (06/14 to 06/18)') 
+
+ggsave("plot2R.png", plot2R, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+
+```{r}
+Rosalind_PMTV <- read_csv("Rosalind/PMTV.csv")
+
+Rosalind_PMTV <- Rosalind_PMTV[c((-1:-2)),c(1,7:11)]
+
+colnames(Rosalind_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Rosalind_PMTV$Fluorochrome[Rosalind_PMTV$Fluorochrome == "PE-Alexa 594"] <- "PE-Alexa594"
+
+
+Rosalind_PMTV_LONG <- gather(Rosalind_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Rosalind_PMTV_LONG$Fluorochrome <- as.character(Rosalind_PMTV_LONG$Fluorochrome)
+Rosalind_PMTV_LONG$Fluorochrome[Rosalind_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+
+Rosalind_MASTERDD <- merge(Rosalind_MFI_DifferenceDD_LONG, Rosalind_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+Rosalind_MASTERDD %>% filter(Fluorochrome=="FITC" & Peak == "Peak 2  ")
+
+Rosalind14 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind14
+
+a <- Rosalind_MASTERDD %>% filter(Fluorochrome == "BV510" & Peak == "Peak 1  ") 
+
+ggsave("Rosalind14.png", Rosalind14, width = 10, height = 5, units = c("in"))
+
+
+Rosalind15 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind15
+
+ggsave("Rosalind15.png", Rosalind15, width = 10, height = 5, units = c("in"))
+
+
+Rosalind16 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind16
+
+ggsave("Rosalind16.png", Rosalind16, width = 10, height = 5, units = c("in"))
+
+
+Rosalind17 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind17
+
+ggsave("Rosalind17.png", Rosalind17, width = 10, height = 5, units = c("in"))
+
+Rosalind18 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind18
+
+ggsave("Rosalind18.png", Rosalind18, width = 10, height = 5, units = c("in"))
+
+Rosalind19 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind19
+
+ggsave("Rosalind19.png", Rosalind19, width = 10, height = 5, units = c("in"))
+
+
+
+Rosalind20 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind20
+
+ggsave("Rosalind20.png", Rosalind20, width = 10, height = 5, units = c("in"))
+
+Rosalind21 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind21
+
+ggsave("Rosalind21.png", Rosalind21, width = 10, height = 5, units = c("in"))
+
+
+Rosalind22 <- Rosalind_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Rosalind22
+
+ggsave("Rosalind22.png", Rosalind22, width = 10, height = 5, units = c("in"))
+
+
+Rosalind23 <- Rosalind_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Rosalind23.png", Rosalind23, width = 7, height = 10, units = c("in"))
+
+
+Rosalind24 <- Rosalind_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Rosalind24.png", Rosalind24, width = 7, height = 10, units = c("in"))
+
+Rosalind25 <- Rosalind_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Rosalind: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Rosalind25.png", Rosalind25, width = 7, height = 10, units = c("in"))
+
+```
+
+```{r}
+Rosalind_MASTERDD$Instrument <- "Rosalind"
+Gadget_MASTERDD$Instrument <- "Gadget"
+
+Rosalind_MASTERDD$Fluorochrome <- as.character(Rosalind_MASTERDD$Fluorochrome)
+
+RG <- rbind(Rosalind_MASTERDD, Gadget_MASTERDD)
+
+RG  %>%  ggplot(aes(x=Fluorochrome, y=Voltage, fill = Instrument)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of Voltages for Gadget and Rosalind")
+
+
+TG <- rbind(Rosalind_MASTERDD, Tesla_MASTERDD)
+ 
+TG$Fluorochrome[TG$Fluorochrome == 'PE-CF594'] <- "PE-Alexa594"
+
+TG1 <- TG  %>%  ggplot(aes(x=Fluorochrome, y=Voltage, fill = Instrument)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of Voltages for Tesla and Rosalind")
+
+ggsave("TG.png", TG1, width = 10, height = 5, units = c("in"))
+
+```
+
+```{r}
+
+Rosalind_MFI_Day2D_PercentChange <- ((Rosalind_MFI[2,]-Rosalind_MFI[1,])/Rosalind_MFI[1,]) * 100
+Rosalind_MFI_Day3D_PercentChange <- ((Rosalind_MFI[3,]-Rosalind_MFI[2,])/Rosalind_MFI[2,]) * 100
+Rosalind_MFI_Day4D_PercentChange <- ((Rosalind_MFI[4,]-Rosalind_MFI[3,])/Rosalind_MFI[3,]) * 100
+Rosalind_MFI_Day5D_PercentChange <- ((Rosalind_MFI[5,]-Rosalind_MFI[4,])/Rosalind_MFI[4,]) * 100
+
+
+Rosalind_MFI_PercentDifferenceDD <- rbind(Rosalind_MFI_Day2D_PercentChange,Rosalind_MFI_Day3D_PercentChange,Rosalind_MFI_Day4D_PercentChange,Rosalind_MFI_Day5D_PercentChange)
+
+Rosalind_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Rosalind_MFI_PercentDifferenceDD_LONG <- gather(Rosalind_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak <- as.character(Rosalind_MFI_PercentDifferenceDD_LONG$Peak)
+
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 1  Median"] <- "PE-Alexa594 Peak 1  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 2  Median"] <- "PE-Alexa594 Peak 2  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 3  Median"] <- "PE-Alexa594 Peak 3  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 4  Median"] <- "PE-Alexa594 Peak 4  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 5  Median"] <- "PE-Alexa594 Peak 5  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 6  Median"] <- "PE-Alexa594 Peak 6  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 7  Median"] <- "PE-Alexa594 Peak 7  Median"
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak[Rosalind_MFI_PercentDifferenceDD_LONG$Peak == "PE-Alexa 594 Peak 8  Median"] <- "PE-Alexa594 Peak 8  Median"
+
+
+
+Rosalind_MFI_PercentDifferenceDD_LONG <- separate(data = Rosalind_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Rosalind_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Rosalind_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Rosalind7<- Rosalind_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Rosalind: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Rosalind7.png", Rosalind7, width = 10, height = 5, units = c("in"))
+
+
+Rosalind8<- Rosalind_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Rosalind: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Rosalind8.png", Rosalind8, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+```{r}
+Gromit_MFI_PercentDifferenceDD_LONG$Instrument <- "Gromit"
+
+Gadget_MFI_PercentDifferenceDD_LONG$Instrument <- "Gadget"
+
+Penny_MFI_PercentDifferenceDD_LONG$Instrument <- "Penny"
+
+Wallace_MFI_PercentDifferenceDD_LONG$Instrument <- "Wallace"
+
+Rosalind_MFI_PercentDifferenceDD_LONG$Instrument <- "Rosalind"
+
+Tesla_MFI_PercentDifferenceDD_LONG$Instrument <- "Tesla"
+
+
+PercentDiff <- rbind(Gromit_MFI_PercentDifferenceDD_LONG, Gadget_MFI_PercentDifferenceDD_LONG, Penny_MFI_PercentDifferenceDD_LONG, Wallace_MFI_PercentDifferenceDD_LONG, Rosalind_MFI_PercentDifferenceDD_LONG, Tesla_MFI_PercentDifferenceDD_LONG)
+
+PercentDiff$Fluorochrome[PercentDiff$Fluorochrome == "PE-Alexa594"] <- "PE-CF594"
+
+PercentDiff$Fluorochrome[PercentDiff$Fluorochrome == "BUV395"] <- "BUV396"
+
+a <- PercentDiff %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x=Date, y=Difference, color=Instrument, group=Instrument))+ geom_line() +  facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Peak 1 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+
+ggsave("A.png", a, width = 10, height = 5, units = c("in"))
+
+
+b <- PercentDiff %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x=Date, y=Difference, color=Instrument, group=Instrument))+ geom_line() +  facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Peak 2 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+
+ggsave("B.png", b, width = 10, height = 5, units = c("in"))
+
+
+
+c <- PercentDiff %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x=Date, y=Difference, color=Instrument, group=Instrument))+ geom_line() +  facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Peak 3 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+
+ggsave("C.png", c, width = 10, height = 5, units = c("in"))
+
+
+d <- PercentDiff %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x=Date, y=Difference, color=Instrument, group=Instrument))+ geom_line() +  facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Peak 4 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+
+ggsave("D.png", d, width = 10, height = 5, units = c("in"))
+
+
+
+PD1 <- PercentDiff[PercentDiff$Peak == "Peak 1  ",]
+PD2 <- PercentDiff[PercentDiff$Peak == "Peak 2  ",]
+PD3 <- PercentDiff[PercentDiff$Peak == "Peak 3  ",]
+PD4 <- PercentDiff[PercentDiff$Peak == "Peak 4  ",]
+
+PercentDiff4 <- rbind(PD1, PD2, PD3, PD4)
+
+e<-PercentDiff4%>% filter(Fluorochrome == "Alexa700") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('Alexa 700 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("E.png", e, width = 10, height = 3, units = c("in"))
+
+f<-PercentDiff4%>% filter(Fluorochrome == "APC") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('APC MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("F.png", f, width = 10, height = 3, units = c("in"))
+
+g<-PercentDiff4%>% filter(Fluorochrome == "APC-Cy7") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('APC-Cy7 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("G.png", g, width = 10, height = 3, units = c("in"))
+
+
+h<-PercentDiff4%>% filter(Fluorochrome == "BUV496") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BUV496 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("H.png", h, width = 10, height = 3, units = c("in"))
+
+
+
+i<-PercentDiff4%>% filter(Fluorochrome == "BUV737") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BUV737 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("I.png", i, width = 10, height = 3, units = c("in"))
+
+
+j<-PercentDiff4%>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV421 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("J.png", j, width = 10, height = 3, units = c("in"))
+
+
+k<-PercentDiff4%>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV510 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("K.png", k, width = 10, height = 3, units = c("in"))
+
+
+
+l<-PercentDiff4%>% filter(Fluorochrome == "BV605") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV605 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("L.png", l, width = 10, height = 3, units = c("in"))
+
+
+m<-PercentDiff4%>% filter(Fluorochrome == "BV650") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV650 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("M.png", m, width = 10, height = 3, units = c("in"))
+
+n<-PercentDiff4%>% filter(Fluorochrome == "BV711") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV711 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("N.png", n, width = 10, height = 3, units = c("in"))
+
+
+o<-PercentDiff4%>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BV786 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("O.png", o, width = 10, height = 3, units = c("in"))
+
+
+p<-PercentDiff4%>% filter(Fluorochrome == "FITC") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('FITC MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("P.png", p, width = 10, height = 3, units = c("in"))
+
+
+q<-PercentDiff4%>% filter(Fluorochrome == "PE") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('PE MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("Q.png", q, width = 10, height = 3, units = c("in"))
+
+
+r<-PercentDiff4%>% filter(Fluorochrome == "PE-CF594") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('PE-CF594 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("R.png", r, width = 10, height = 3, units = c("in"))
+
+
+s<-PercentDiff4%>% filter(Fluorochrome == "PE-Cy5") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('PE-Cy5 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("S.png", s, width = 10, height = 3, units = c("in"))
+
+
+t<-PercentDiff4%>% filter(Fluorochrome == "PE-Cy7") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('PE-Cy7 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("T.png", t, width = 10, height = 3, units = c("in"))
+
+
+u<-PercentDiff4%>% filter(Fluorochrome == "PerCP-Cy5") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('PerCP-Cy5 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("U.png", u, width = 10, height = 3, units = c("in"))
+
+v<-PercentDiff4%>% filter(Fluorochrome == "BUV396") %>% ggplot(aes(x=Date, y=Difference, color=Peak, group=Peak))+ geom_line() +  facet_wrap(~Instrument, nrow=1) + ggtitle('BUV 396 MFI Percent Change (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylab("% Difference")
+
+ggsave("V.png", v, width = 10, height = 3, units = c("in"))
+
+
+```
+
+
+```{r}
+
+Rosalind_RCV <- Rosalind %>% select(contains("Robust"))
+
+Rosalind_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Rosalind_RCV_LONG <- gather(Rosalind_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 8  Robust CV", factor_key=TRUE)
+
+Rosalind_RCV_LONG$Peak <- as.character(Rosalind_RCV_LONG$Peak)
+
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 1  Robust CV"] <- "PE-Alexa594 Peak 1  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 2  Robust CV"] <- "PE-Alexa594 Peak 2  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 3  Robust CV"] <- "PE-Alexa594 Peak 3  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 4  Robust CV"] <- "PE-Alexa594 Peak 4  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 5  Robust CV"] <- "PE-Alexa594 Peak 5  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 6  Robust CV"] <- "PE-Alexa594 Peak 6  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 7  Robust CV"] <- "PE-Alexa594 Peak 7  Robust CV"
+Rosalind_RCV_LONG$Peak[Rosalind_RCV_LONG$Peak == "PE-Alexa 594 Peak 8  Robust CV"] <- "PE-Alexa594 Peak 8  Robust CV"
+
+Rosalind_RCV_LONG <- separate(data = Rosalind_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Rosalind_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Rosalind_RCV_LONG$Peak))
+
+
+Rosalind7 <- ggplot(Rosalind_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Rosalind: Distribution of RCV (06/14 to 06/18)') 
+
+Rosalind8 <- Rosalind7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("RosalindRCV1.png", Rosalind7, width = 10, height = 5, units = c("in"))
+
+ggsave("RosalindRCV2.png", Rosalind8, width = 10, height = 5, units = c("in"))
+```

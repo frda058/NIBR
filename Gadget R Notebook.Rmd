@@ -1,0 +1,1203 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(readr)
+library(plotly)
+library(grid)
+library(reshape2)
+setwd("~/Desktop")
+```
+
+Import FlowJo Table
+```{r}
+Gadget_FlowJo_table <- read_csv("~/Desktop/Gadget FlowJo table 2.csv")
+Gadget <- as.data.frame(Gadget_FlowJo_table)
+Gadget <- Gadget %>% select(-contains("Freq"))
+Gadget <- Gadget[-c(6:7),]
+Gadget <- Gadget[,-1]
+Gadget[,1:375] <- sapply(Gadget[, 1:375], as.numeric)
+```
+
+Select for MFI Data
+```{r}
+Gadget_MFI <- Gadget %>% select(contains("Median"))
+```
+
+Assign BUV395 Peak 3 as BUV395 Peak 1
+```{r}
+Gadget_BUV395 <- Gadget %>% select(contains("BUV395"))
+Gadget_BUV395 <- Gadget_BUV395 %>%  select(contains("Median"))
+Gadget_BUV395$`BUV395 Peak 1  Median` <- Gadget_BUV395$`BUV395 Peak 3  Median`
+Gadget_MFI$`BUV395 Peak 1  Median` <- Gadget_BUV395$`BUV395 Peak 1  Median`
+```
+
+Select for Peak 1 MFI Data Only
+```{r}
+Gadget_MFI_Peak1 <- Gadget_MFI %>% select(contains("Peak 1"))
+Gadget_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+colnames(Gadget_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "BUV395" , "Date")
+
+Gadget_MFI_Peak1 <- Gadget_MFI_Peak1[,c(19,1:18)]
+
+Gadget_MFI_Peak1_Long <- gather(Gadget_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'BUV395', factor_key=TRUE)
+```
+
+Select for Peak 4 MFI Data Only
+```{r}
+Gadget_MFI_Peak4 <- Gadget_MFI %>% select(contains("Peak 4"))
+Gadget_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+colnames(Gadget_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Gadget_MFI_Peak4 <- Gadget_MFI_Peak4[,c(19,1:18)]
+
+Gadget_MFI_Peak4_Long <- gather(Gadget_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Gadget_MFI_Peak4_Long$Difference <- Gadget_MFI_Peak1_Long$MFI - Gadget_MFI_Peak4_Long$MFI
+
+Gadget_MFI_Peak4_Long$'Percent Difference' <- ((Gadget_MFI_Peak1_Long$MFI - Gadget_MFI_Peak4_Long$MFI) / Gadget_MFI_Peak4_Long$MFI) * 100
+
+#Line Graph of Peak 4 MFI Data Across 5 Days
+Gadget_Peak4_LineGraph <- ggplot(Gadget_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Gadget: June 14th-18th Peak 4 MFI Data")
+
+Gadget_Peak4_LineGraph
+#ggsave("Gadget_Peak4_LineGraph.png", Gadget_Peak4_LineGraph , width = 10, height = 5, units = c("in"))
+
+#Line Graph of Peak 1 MFI Data Across 5 Days
+Gadget_Peak1_LineGraph  <- ggplot(Gadget_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Gadget: June 14th-18th Peak 1 MFI Data") + theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+Gadget_Peak1_LineGraph
+#ggsave("Gadget_Peak1_LineGraph.png", Gadget_Peak1_LineGraph, width = 10, height = 5, units = c("in"))
+```
+
+```{r}
+
+#Gadget_MFI_Ratios
+
+##Alexa700
+Gadget_Alexa700_2to1 <- c(Gadget_MFI$`Alexa700 Peak 2  Median`/Gadget_MFI$`Alexa700 Peak 1  Median`)
+Gadget_Alexa700_3to2 <- Gadget_MFI$`Alexa700 Peak 3  Median`/Gadget_MFI$`Alexa700 Peak 2  Median`
+Gadget_Alexa700_4to3 <- Gadget_MFI$`Alexa700 Peak 4  Median`/Gadget_MFI$`Alexa700 Peak 3  Median`
+Gadget_Alexa700_5to4 <- Gadget_MFI$`Alexa700 Peak 5  Median`/Gadget_MFI$`Alexa700 Peak 4  Median`
+Gadget_Alexa700_6to5 <- Gadget_MFI$`Alexa700 Peak 6  Median`/Gadget_MFI$`Alexa700 Peak 5  Median`
+Gadget_Alexa700_7to6 <- Gadget_MFI$`Alexa700 Peak 7  Median`/Gadget_MFI$`Alexa700 Peak 6  Median`
+Gadget_Alexa700_8to7 <- Gadget_MFI$`Alexa700 Peak 8  Median`/Gadget_MFI$`Alexa700 Peak 7  Median`
+Gadget_Alexa700_4to1 <- Gadget_MFI$`Alexa700 Peak 4  Median`/Gadget_MFI$`Alexa700 Peak 1  Median`
+Gadget_Alexa700_3to1 <- Gadget_MFI$`Alexa700 Peak 3  Median`/Gadget_MFI$`Alexa700 Peak 1  Median`
+
+
+Gadget_Alexa700_MFI_Ratio <- data.frame(Gadget_Alexa700_2to1,Gadget_Alexa700_3to2, Gadget_Alexa700_4to3, Gadget_Alexa700_5to4, Gadget_Alexa700_6to5, Gadget_Alexa700_7to6, Gadget_Alexa700_8to7, Gadget_Alexa700_4to1, Gadget_Alexa700_3to1)
+
+colnames(Gadget_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_Alexa700_MFI_Ratio_LONG <- gather(Gadget_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Gadget_APC_2to1 <- c(Gadget_MFI$`APC Peak 2  Median`/Gadget_MFI$`APC Peak 1  Median`)
+Gadget_APC_3to2 <- Gadget_MFI$`APC Peak 3  Median`/Gadget_MFI$`APC Peak 2  Median`
+Gadget_APC_4to3 <- Gadget_MFI$`APC Peak 4  Median`/Gadget_MFI$`APC Peak 3  Median`
+Gadget_APC_5to4 <- Gadget_MFI$`APC Peak 5  Median`/Gadget_MFI$`APC Peak 4  Median`
+Gadget_APC_6to5 <- Gadget_MFI$`APC Peak 6  Median`/Gadget_MFI$`APC Peak 5  Median`
+Gadget_APC_7to6 <- Gadget_MFI$`APC Peak 7  Median`/Gadget_MFI$`APC Peak 6  Median`
+Gadget_APC_8to7 <- Gadget_MFI$`APC Peak 8  Median`/Gadget_MFI$`APC Peak 7  Median`
+Gadget_APC_4to1 <- Gadget_MFI$`APC Peak 4  Median`/Gadget_MFI$`APC Peak 1  Median`
+Gadget_APC_3to1 <- Gadget_MFI$`APC Peak 3  Median`/Gadget_MFI$`APC Peak 1  Median`
+
+
+Gadget_APC_MFI_Ratio <- data.frame(Gadget_APC_2to1,Gadget_APC_3to2, Gadget_APC_4to3, Gadget_APC_5to4, Gadget_APC_6to5, Gadget_APC_7to6, Gadget_APC_8to7, Gadget_APC_4to1, Gadget_APC_3to1)
+
+colnames(Gadget_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_APC_MFI_Ratio_LONG <- gather(Gadget_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Gadget_APC_Cy7_2to1 <- c(Gadget_MFI$`APC-Cy7 Peak 2  Median`/Gadget_MFI$`APC-Cy7 Peak 1  Median`)
+Gadget_APC_Cy7_3to2 <- Gadget_MFI$`APC-Cy7 Peak 3  Median`/Gadget_MFI$`APC-Cy7 Peak 2  Median`
+Gadget_APC_Cy7_4to3 <- Gadget_MFI$`APC-Cy7 Peak 4  Median`/Gadget_MFI$`APC-Cy7 Peak 3  Median`
+Gadget_APC_Cy7_5to4 <- Gadget_MFI$`APC-Cy7 Peak 5  Median`/Gadget_MFI$`APC-Cy7 Peak 4  Median`
+Gadget_APC_Cy7_6to5 <- Gadget_MFI$`APC-Cy7 Peak 6  Median`/Gadget_MFI$`APC-Cy7 Peak 5  Median`
+Gadget_APC_Cy7_7to6 <- Gadget_MFI$`APC-Cy7 Peak 7  Median`/Gadget_MFI$`APC-Cy7 Peak 6  Median`
+Gadget_APC_Cy7_8to7 <- NA
+Gadget_APC_Cy7_4to1 <- Gadget_MFI$`APC-Cy7 Peak 4  Median`/Gadget_MFI$`APC-Cy7 Peak 1  Median`
+Gadget_APC_Cy7_3to1 <- Gadget_MFI$`APC-Cy7 Peak 3  Median`/Gadget_MFI$`APC-Cy7 Peak 1  Median`
+
+Gadget_APC_Cy7_MFI_Ratio <- data.frame(Gadget_APC_Cy7_2to1,Gadget_APC_Cy7_3to2, Gadget_APC_Cy7_4to3, Gadget_APC_Cy7_5to4, Gadget_APC_Cy7_6to5, Gadget_APC_Cy7_7to6, Gadget_APC_Cy7_8to7, Gadget_APC_Cy7_4to1, Gadget_APC_Cy7_3to1)
+
+colnames(Gadget_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_APC_Cy7_MFI_Ratio_LONG <- gather(Gadget_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV395
+
+Gadget_BUV395_2to1 <- NA
+Gadget_BUV395_3to2 <- Gadget_MFI$`BUV395 Peak 3  Median`/Gadget_MFI$`BUV395 Peak 2  Median`
+Gadget_BUV395_4to3 <- Gadget_MFI$`BUV395 Peak 4  Median`/Gadget_MFI$`BUV395 Peak 3  Median`
+Gadget_BUV395_5to4 <- Gadget_MFI$`BUV395 Peak 5  Median`/Gadget_MFI$`BUV395 Peak 4  Median`
+Gadget_BUV395_6to5 <- Gadget_MFI$`BUV395 Peak 6  Median`/Gadget_MFI$`BUV395 Peak 5  Median`
+Gadget_BUV395_7to6 <- Gadget_MFI$`BUV395 Peak 7  Median`/Gadget_MFI$`BUV395 Peak 6  Median`
+Gadget_BUV395_8to7 <- Gadget_MFI$`BUV395 Peak 8  Median`/Gadget_MFI$`BUV395 Peak 7  Median`
+Gadget_BUV395_4to1 <- NA
+Gadget_BUV395_3to1 <- NA
+
+
+Gadget_BUV395_MFI_Ratio <- data.frame(Gadget_BUV395_2to1,Gadget_BUV395_3to2, Gadget_BUV395_4to3, Gadget_BUV395_5to4, Gadget_BUV395_6to5, Gadget_BUV395_7to6, Gadget_BUV395_8to7, Gadget_BUV395_4to1, Gadget_BUV395_3to1)
+
+colnames(Gadget_BUV395_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BUV395_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BUV395_MFI_Ratio_LONG <- gather(Gadget_BUV395_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BUV395_MFI_Ratio_LONG$Fluorochrome <- "BUV395"
+
+##BUV496
+
+Gadget_BUV496_2to1 <- Gadget_MFI$`BUV496 Peak 2  Median`/Gadget_MFI$`BUV496 Peak 1  Median`
+Gadget_BUV496_3to2 <- Gadget_MFI$`BUV496 Peak 3  Median`/Gadget_MFI$`BUV496 Peak 2  Median`
+Gadget_BUV496_4to3 <- Gadget_MFI$`BUV496 Peak 4  Median`/Gadget_MFI$`BUV496 Peak 3  Median`
+Gadget_BUV496_5to4 <- Gadget_MFI$`BUV496 Peak 5  Median`/Gadget_MFI$`BUV496 Peak 4  Median`
+Gadget_BUV496_6to5 <- Gadget_MFI$`BUV496 Peak 6  Median`/Gadget_MFI$`BUV496 Peak 5  Median`
+Gadget_BUV496_7to6 <- Gadget_MFI$`BUV496 Peak 7  Median`/Gadget_MFI$`BUV496 Peak 6  Median`
+Gadget_BUV496_8to7 <- Gadget_MFI$`BUV496 Peak 8  Median`/Gadget_MFI$`BUV496 Peak 7  Median`
+Gadget_BUV496_4to1 <- Gadget_MFI$`BUV496 Peak 4  Median`/Gadget_MFI$`BUV496 Peak 1  Median`
+Gadget_BUV496_3to1 <- Gadget_MFI$`BUV496 Peak 3  Median`/Gadget_MFI$`BUV496 Peak 1  Median`
+
+Gadget_BUV496_MFI_Ratio <- data.frame(Gadget_BUV496_2to1,Gadget_BUV496_3to2, Gadget_BUV496_4to3, Gadget_BUV496_5to4, Gadget_BUV496_6to5, Gadget_BUV496_7to6, Gadget_BUV496_8to7, Gadget_BUV496_4to1, Gadget_BUV496_3to1)
+
+colnames(Gadget_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BUV496_MFI_Ratio_LONG <- gather(Gadget_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Gadget_BUV737_2to1 <- Gadget_MFI$`BUV737 Peak 2  Median`/Gadget_MFI$`BUV737 Peak 1  Median`
+Gadget_BUV737_3to2 <- Gadget_MFI$`BUV737 Peak 3  Median`/Gadget_MFI$`BUV737 Peak 2  Median`
+Gadget_BUV737_4to3 <- Gadget_MFI$`BUV737 Peak 4  Median`/Gadget_MFI$`BUV737 Peak 3  Median`
+Gadget_BUV737_5to4 <- Gadget_MFI$`BUV737 Peak 5  Median`/Gadget_MFI$`BUV737 Peak 4  Median`
+Gadget_BUV737_6to5 <- NA
+Gadget_BUV737_7to6 <- NA
+Gadget_BUV737_8to7 <- NA
+Gadget_BUV737_4to1 <- Gadget_MFI$`BUV737 Peak 4  Median`/Gadget_MFI$`BUV737 Peak 1  Median`
+Gadget_BUV737_3to1 <- Gadget_MFI$`BUV737 Peak 3  Median`/Gadget_MFI$`BUV737 Peak 1  Median`
+
+
+Gadget_BUV737_MFI_Ratio <- data.frame(Gadget_BUV737_2to1,Gadget_BUV737_3to2, Gadget_BUV737_4to3, Gadget_BUV737_5to4, Gadget_BUV737_6to5, Gadget_BUV737_7to6, Gadget_BUV737_8to7, Gadget_BUV737_4to1, Gadget_BUV737_3to1)
+
+colnames(Gadget_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BUV737_MFI_Ratio_LONG <- gather(Gadget_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Gadget_BV421_2to1 <- Gadget_MFI$`BV421 Peak 2  Median`/Gadget_MFI$`BV421 Peak 1  Median`
+Gadget_BV421_3to2 <- Gadget_MFI$`BV421 Peak 3  Median`/Gadget_MFI$`BV421 Peak 2  Median`
+Gadget_BV421_4to3 <- Gadget_MFI$`BV421 Peak 4  Median`/Gadget_MFI$`BV421 Peak 3  Median`
+Gadget_BV421_5to4 <- Gadget_MFI$`BV421 Peak 5  Median`/Gadget_MFI$`BV421 Peak 4  Median`
+Gadget_BV421_6to5 <- Gadget_MFI$`BV421 Peak 6  Median`/Gadget_MFI$`BV421 Peak 5  Median`
+Gadget_BV421_7to6 <- Gadget_MFI$`BV421 Peak 7  Median`/Gadget_MFI$`BV421 Peak 6  Median`
+Gadget_BV421_8to7 <- Gadget_MFI$`BV421 Peak 8  Median`/Gadget_MFI$`BV421 Peak 7  Median`
+Gadget_BV421_4to1 <- Gadget_MFI$`BV421 Peak 4  Median`/Gadget_MFI$`BV421 Peak 1  Median`
+Gadget_BV421_3to1 <- Gadget_MFI$`BV421 Peak 3  Median`/Gadget_MFI$`BV421 Peak 1  Median`
+
+Gadget_BV421_MFI_Ratio <- data.frame(Gadget_BV421_2to1,Gadget_BV421_3to2, Gadget_BV421_4to3, Gadget_BV421_5to4, Gadget_BV421_6to5, Gadget_BV421_7to6, Gadget_BV421_8to7, Gadget_BV421_4to1, Gadget_BV421_3to1)
+
+colnames(Gadget_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV421_MFI_Ratio_LONG <- gather(Gadget_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Gadget_BV510_2to1 <- Gadget_MFI$`BV510 Peak 2  Median`/Gadget_MFI$`BV510 Peak 1  Median`
+Gadget_BV510_3to2 <- Gadget_MFI$`BV510 Peak 3  Median`/Gadget_MFI$`BV510 Peak 2  Median`
+Gadget_BV510_4to3 <- Gadget_MFI$`BV510 Peak 4  Median`/Gadget_MFI$`BV510 Peak 3  Median`
+Gadget_BV510_5to4 <- Gadget_MFI$`BV510 Peak 5  Median`/Gadget_MFI$`BV510 Peak 4  Median`
+Gadget_BV510_6to5 <- Gadget_MFI$`BV510 Peak 6  Median`/Gadget_MFI$`BV510 Peak 5  Median`
+Gadget_BV510_7to6 <- Gadget_MFI$`BV510 Peak 7  Median`/Gadget_MFI$`BV510 Peak 6  Median`
+Gadget_BV510_8to7 <- Gadget_MFI$`BV510 Peak 8  Median`/Gadget_MFI$`BV510 Peak 7  Median`
+Gadget_BV510_4to1 <- Gadget_MFI$`BV510 Peak 4  Median`/Gadget_MFI$`BV510 Peak 1  Median`
+Gadget_BV510_3to1 <- Gadget_MFI$`BV510 Peak 3  Median`/Gadget_MFI$`BV510 Peak 1  Median`
+
+Gadget_BV510_MFI_Ratio <- data.frame(Gadget_BV510_2to1,Gadget_BV510_3to2, Gadget_BV510_4to3, Gadget_BV510_5to4, Gadget_BV510_6to5, Gadget_BV510_7to6, Gadget_BV510_8to7, Gadget_BV510_4to1, Gadget_BV510_3to1)
+
+colnames(Gadget_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV510_MFI_Ratio_LONG <- gather(Gadget_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Gadget_BV605_2to1 <- Gadget_MFI$`BV605 Peak 2  Median`/Gadget_MFI$`BV605 Peak 1  Median`
+Gadget_BV605_3to2 <- Gadget_MFI$`BV605 Peak 3  Median`/Gadget_MFI$`BV605 Peak 2  Median`
+Gadget_BV605_4to3 <- Gadget_MFI$`BV605 Peak 4  Median`/Gadget_MFI$`BV605 Peak 3  Median`
+Gadget_BV605_5to4 <- Gadget_MFI$`BV605 Peak 5  Median`/Gadget_MFI$`BV605 Peak 4  Median`
+Gadget_BV605_6to5 <- Gadget_MFI$`BV605 Peak 6  Median`/Gadget_MFI$`BV605 Peak 5  Median`
+Gadget_BV605_7to6 <- NA
+Gadget_BV605_8to7 <- NA
+Gadget_BV605_4to1 <- Gadget_MFI$`BV605 Peak 4  Median`/Gadget_MFI$`BV605 Peak 1  Median`
+Gadget_BV605_3to1 <- Gadget_MFI$`BV605 Peak 3  Median`/Gadget_MFI$`BV605 Peak 1  Median`
+
+Gadget_BV605_MFI_Ratio <- data.frame(Gadget_BV605_2to1,Gadget_BV605_3to2, Gadget_BV605_4to3, Gadget_BV605_5to4, Gadget_BV605_6to5, Gadget_BV605_7to6, Gadget_BV605_8to7, Gadget_BV605_4to1, Gadget_BV605_3to1)
+
+colnames(Gadget_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV605_MFI_Ratio_LONG <- gather(Gadget_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Gadget_BV650_2to1 <- Gadget_MFI$`BV650 Peak 2  Median`/Gadget_MFI$`BV650 Peak 1  Median`
+Gadget_BV650_3to2 <- Gadget_MFI$`BV650 Peak 3  Median`/Gadget_MFI$`BV650 Peak 2  Median`
+Gadget_BV650_4to3 <- Gadget_MFI$`BV650 Peak 4  Median`/Gadget_MFI$`BV650 Peak 3  Median`
+Gadget_BV650_5to4 <- Gadget_MFI$`BV650 Peak 5  Median`/Gadget_MFI$`BV650 Peak 4  Median`
+Gadget_BV650_6to5 <- NA
+Gadget_BV650_7to6 <- NA
+Gadget_BV650_8to7 <- NA
+Gadget_BV650_4to1 <- Gadget_MFI$`BV650 Peak 4  Median`/Gadget_MFI$`BV650 Peak 1  Median`
+Gadget_BV650_3to1 <- Gadget_MFI$`BV650 Peak 3  Median`/Gadget_MFI$`BV650 Peak 1  Median`
+
+Gadget_BV650_MFI_Ratio <- data.frame(Gadget_BV650_2to1,Gadget_BV650_3to2, Gadget_BV650_4to3, Gadget_BV650_5to4, Gadget_BV650_6to5, Gadget_BV650_7to6, Gadget_BV650_8to7, Gadget_BV650_4to1, Gadget_BV650_3to1)
+
+colnames(Gadget_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV650_MFI_Ratio_LONG <- gather(Gadget_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Gadget_BV711_2to1 <- Gadget_MFI$`BV711 Peak 2  Median`/Gadget_MFI$`BV711 Peak 1  Median`
+Gadget_BV711_3to2 <- Gadget_MFI$`BV711 Peak 3  Median`/Gadget_MFI$`BV711 Peak 2  Median`
+Gadget_BV711_4to3 <- Gadget_MFI$`BV711 Peak 4  Median`/Gadget_MFI$`BV711 Peak 3  Median`
+Gadget_BV711_5to4 <- Gadget_MFI$`BV711 Peak 5  Median`/Gadget_MFI$`BV711 Peak 4  Median`
+Gadget_BV711_6to5 <- NA
+Gadget_BV711_7to6 <- NA
+Gadget_BV711_8to7 <- NA
+Gadget_BV711_4to1 <- Gadget_MFI$`BV711 Peak 4  Median`/Gadget_MFI$`BV711 Peak 1  Median`
+Gadget_BV711_3to1 <- Gadget_MFI$`BV711 Peak 3  Median`/Gadget_MFI$`BV711 Peak 1  Median`
+
+Gadget_BV711_MFI_Ratio <- data.frame(Gadget_BV711_2to1,Gadget_BV711_3to2, Gadget_BV711_4to3, Gadget_BV711_5to4, Gadget_BV711_6to5, Gadget_BV711_7to6, Gadget_BV711_8to7, Gadget_BV711_4to1, Gadget_BV711_3to1)
+
+colnames(Gadget_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV711_MFI_Ratio_LONG <- gather(Gadget_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Gadget_BV786_2to1 <- Gadget_MFI$`BV786 Peak 2  Median`/Gadget_MFI$`BV786 Peak 1  Median`
+Gadget_BV786_3to2 <- Gadget_MFI$`BV786 Peak 3  Median`/Gadget_MFI$`BV786 Peak 2  Median`
+Gadget_BV786_4to3 <- Gadget_MFI$`BV786 Peak 4  Median`/Gadget_MFI$`BV786 Peak 3  Median`
+Gadget_BV786_5to4 <- NA
+Gadget_BV786_6to5 <- NA
+Gadget_BV786_7to6 <- NA
+Gadget_BV786_8to7 <- NA
+Gadget_BV786_4to1 <- Gadget_MFI$`BV786 Peak 4  Median`/Gadget_MFI$`BV786 Peak 1  Median`
+Gadget_BV786_3to1 <- Gadget_MFI$`BV786 Peak 3  Median`/Gadget_MFI$`BV786 Peak 1  Median`
+
+Gadget_BV786_MFI_Ratio <- data.frame(Gadget_BV786_2to1,Gadget_BV786_3to2, Gadget_BV786_4to3, Gadget_BV786_5to4, Gadget_BV786_6to5, Gadget_BV786_7to6, Gadget_BV786_8to7, Gadget_BV786_4to1, Gadget_BV786_3to1)
+
+colnames(Gadget_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_BV786_MFI_Ratio_LONG <- gather(Gadget_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Gadget_FITC_2to1 <- Gadget_MFI$`FITC Peak 2  Median`/Gadget_MFI$`FITC Peak 1  Median`
+Gadget_FITC_3to2 <- Gadget_MFI$`FITC Peak 3  Median`/Gadget_MFI$`FITC Peak 2  Median`
+Gadget_FITC_4to3 <- Gadget_MFI$`FITC Peak 4  Median`/Gadget_MFI$`FITC Peak 3  Median`
+Gadget_FITC_5to4 <- Gadget_MFI$`FITC Peak 5  Median`/Gadget_MFI$`FITC Peak 4  Median`
+Gadget_FITC_6to5 <- Gadget_MFI$`FITC Peak 6  Median`/Gadget_MFI$`FITC Peak 5  Median`
+Gadget_FITC_7to6 <- Gadget_MFI$`FITC Peak 7  Median`/Gadget_MFI$`FITC Peak 6  Median`
+Gadget_FITC_8to7 <- Gadget_MFI$`FITC Peak 8  Median`/Gadget_MFI$`FITC Peak 7  Median`
+Gadget_FITC_4to1 <- Gadget_MFI$`FITC Peak 4  Median`/Gadget_MFI$`FITC Peak 1  Median`
+Gadget_FITC_3to1 <- Gadget_MFI$`FITC Peak 3  Median`/Gadget_MFI$`FITC Peak 1  Median`
+
+Gadget_FITC_MFI_Ratio <- data.frame(Gadget_FITC_2to1,Gadget_FITC_3to2, Gadget_FITC_4to3, Gadget_FITC_5to4, Gadget_FITC_6to5, Gadget_FITC_7to6, Gadget_FITC_8to7, Gadget_FITC_4to1, Gadget_FITC_3to1)
+
+colnames(Gadget_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_FITC_MFI_Ratio_LONG <- gather(Gadget_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Gadget_PE_2to1 <- Gadget_MFI$`PE Peak 2  Median`/Gadget_MFI$`PE Peak 1  Median`
+Gadget_PE_3to2 <- Gadget_MFI$`PE Peak 3  Median`/Gadget_MFI$`PE Peak 2  Median`
+Gadget_PE_4to3 <- Gadget_MFI$`PE Peak 4  Median`/Gadget_MFI$`PE Peak 3  Median`
+Gadget_PE_5to4 <- Gadget_MFI$`PE Peak 5  Median`/Gadget_MFI$`PE Peak 4  Median`
+Gadget_PE_6to5 <- Gadget_MFI$`PE Peak 6  Median`/Gadget_MFI$`PE Peak 5  Median`
+Gadget_PE_7to6 <- Gadget_MFI$`PE Peak 7  Median`/Gadget_MFI$`PE Peak 6  Median`
+Gadget_PE_8to7 <- Gadget_MFI$`PE Peak 8  Median`/Gadget_MFI$`PE Peak 7  Median`
+Gadget_PE_4to1 <- Gadget_MFI$`PE Peak 4  Median`/Gadget_MFI$`PE Peak 1  Median`
+Gadget_PE_3to1 <- Gadget_MFI$`PE Peak 3  Median`/Gadget_MFI$`PE Peak 1  Median`
+
+Gadget_PE_MFI_Ratio <- data.frame(Gadget_PE_2to1,Gadget_PE_3to2, Gadget_PE_4to3, Gadget_PE_5to4, Gadget_PE_6to5, Gadget_PE_7to6, Gadget_PE_8to7, Gadget_PE_4to1, Gadget_PE_3to1)
+
+colnames(Gadget_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PE_MFI_Ratio_LONG <- gather(Gadget_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Gadget_PE_CF594_2to1 <- Gadget_MFI$`PE-CF594 Peak 2  Median`/Gadget_MFI$`PE-CF594 Peak 1  Median`
+Gadget_PE_CF594_3to2 <- Gadget_MFI$`PE-CF594 Peak 3  Median`/Gadget_MFI$`PE-CF594 Peak 2  Median`
+Gadget_PE_CF594_4to3 <- Gadget_MFI$`PE-CF594 Peak 4  Median`/Gadget_MFI$`PE-CF594 Peak 3  Median`
+Gadget_PE_CF594_5to4 <- Gadget_MFI$`PE-CF594 Peak 5  Median`/Gadget_MFI$`PE-CF594 Peak 4  Median`
+Gadget_PE_CF594_6to5 <- Gadget_MFI$`PE-CF594 Peak 6  Median`/Gadget_MFI$`PE-CF594 Peak 5  Median`
+Gadget_PE_CF594_7to6 <- Gadget_MFI$`PE-CF594 Peak 7  Median`/Gadget_MFI$`PE-CF594 Peak 6  Median`
+Gadget_PE_CF594_8to7 <- Gadget_MFI$`PE-CF594 Peak 8  Median`/Gadget_MFI$`PE-CF594 Peak 7  Median`
+Gadget_PE_CF594_4to1 <- Gadget_MFI$`PE-CF594 Peak 4  Median`/Gadget_MFI$`PE-CF594 Peak 1  Median`
+Gadget_PE_CF594_3to1 <- Gadget_MFI$`PE-CF594 Peak 3  Median`/Gadget_MFI$`PE-CF594 Peak 1  Median`
+
+Gadget_PE_CF594_MFI_Ratio <- data.frame(Gadget_PE_CF594_2to1,Gadget_PE_CF594_3to2, Gadget_PE_CF594_4to3, Gadget_PE_CF594_5to4, Gadget_PE_CF594_6to5, Gadget_PE_CF594_7to6, Gadget_PE_CF594_8to7, Gadget_PE_CF594_4to1, Gadget_PE_CF594_3to1)
+
+colnames(Gadget_PE_CF594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_PE_CF594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PE_CF594_MFI_Ratio_LONG <- gather(Gadget_PE_CF594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_PE_CF594_MFI_Ratio_LONG$Fluorochrome <- "PE-CF594"
+
+
+##PE-Cy5
+
+Gadget_PE_Cy5_2to1 <- Gadget_MFI$`PE-Cy5 Peak 2  Median`/Gadget_MFI$`PE-Cy5 Peak 1  Median`
+Gadget_PE_Cy5_3to2 <- Gadget_MFI$`PE-Cy5 Peak 3  Median`/Gadget_MFI$`PE-Cy5 Peak 2  Median`
+Gadget_PE_Cy5_4to3 <- Gadget_MFI$`PE-Cy5 Peak 4  Median`/Gadget_MFI$`PE-Cy5 Peak 3  Median`
+Gadget_PE_Cy5_5to4 <- Gadget_MFI$`PE-Cy5 Peak 5  Median`/Gadget_MFI$`PE-Cy5 Peak 4  Median`
+Gadget_PE_Cy5_6to5 <- Gadget_MFI$`PE-Cy5 Peak 6  Median`/Gadget_MFI$`PE-Cy5 Peak 5  Median`
+Gadget_PE_Cy5_7to6 <- Gadget_MFI$`PE-Cy5 Peak 7  Median`/Gadget_MFI$`PE-Cy5 Peak 6  Median`
+Gadget_PE_Cy5_8to7 <- Gadget_MFI$`PE-Cy5 Peak 8  Median`/Gadget_MFI$`PE-Cy5 Peak 7  Median`
+Gadget_PE_Cy5_4to1 <- Gadget_MFI$`PE-Cy5 Peak 4  Median`/Gadget_MFI$`PE-Cy5 Peak 1  Median`
+Gadget_PE_Cy5_3to1 <- Gadget_MFI$`PE-Cy5 Peak 3  Median`/Gadget_MFI$`PE-Cy5 Peak 1  Median`
+
+Gadget_PE_Cy5_MFI_Ratio <- data.frame(Gadget_PE_Cy5_2to1,Gadget_PE_Cy5_3to2, Gadget_PE_Cy5_4to3, Gadget_PE_Cy5_5to4, Gadget_PE_Cy5_6to5, Gadget_PE_Cy5_7to6, Gadget_PE_Cy5_8to7, Gadget_PE_Cy5_4to1, Gadget_PE_Cy5_3to1)
+
+colnames(Gadget_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PE_Cy5_MFI_Ratio_LONG <- gather(Gadget_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Gadget_PE_Cy7_2to1 <- Gadget_MFI$`PE-Cy7 Peak 2  Median`/Gadget_MFI$`PE-Cy7 Peak 1  Median`
+Gadget_PE_Cy7_3to2 <- Gadget_MFI$`PE-Cy7 Peak 3  Median`/Gadget_MFI$`PE-Cy7 Peak 2  Median`
+Gadget_PE_Cy7_4to3 <- Gadget_MFI$`PE-Cy7 Peak 4  Median`/Gadget_MFI$`PE-Cy7 Peak 3  Median`
+Gadget_PE_Cy7_5to4 <- Gadget_MFI$`PE-Cy7 Peak 5  Median`/Gadget_MFI$`PE-Cy7 Peak 4  Median`
+Gadget_PE_Cy7_6to5 <- Gadget_MFI$`PE-Cy7 Peak 6  Median`/Gadget_MFI$`PE-Cy7 Peak 5  Median`
+Gadget_PE_Cy7_7to6 <- NA
+Gadget_PE_Cy7_8to7 <- NA
+Gadget_PE_Cy7_4to1 <- Gadget_MFI$`PE-Cy7 Peak 4  Median`/Gadget_MFI$`PE-Cy7 Peak 1  Median`
+Gadget_PE_Cy7_3to1 <- Gadget_MFI$`PE-Cy7 Peak 3  Median`/Gadget_MFI$`PE-Cy7 Peak 1  Median`
+
+Gadget_PE_Cy7_MFI_Ratio <- data.frame(Gadget_PE_Cy7_2to1,Gadget_PE_Cy7_3to2, Gadget_PE_Cy7_4to3, Gadget_PE_Cy7_5to4, Gadget_PE_Cy7_6to5, Gadget_PE_Cy7_7to6, Gadget_PE_Cy7_8to7, Gadget_PE_Cy7_4to1, Gadget_PE_Cy7_3to1)
+
+colnames(Gadget_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PE_Cy7_MFI_Ratio_LONG <- gather(Gadget_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Gadget_PerCP_Cy5_2to1 <- Gadget_MFI$`PerCP-Cy5 Peak 2  Median`/Gadget_MFI$`PerCP-Cy5 Peak 1  Median`
+Gadget_PerCP_Cy5_3to2 <- Gadget_MFI$`PerCP-Cy5 Peak 3  Median`/Gadget_MFI$`PerCP-Cy5 Peak 2  Median`
+Gadget_PerCP_Cy5_4to3 <- Gadget_MFI$`PerCP-Cy5 Peak 4  Median`/Gadget_MFI$`PerCP-Cy5 Peak 3  Median`
+Gadget_PerCP_Cy5_5to4 <- Gadget_MFI$`PerCP-Cy5 Peak 5  Median`/Gadget_MFI$`PerCP-Cy5 Peak 4  Median`
+Gadget_PerCP_Cy5_6to5 <- Gadget_MFI$`PerCP-Cy5 Peak 6  Median`/Gadget_MFI$`PerCP-Cy5 Peak 5  Median`
+Gadget_PerCP_Cy5_7to6 <- Gadget_MFI$`PerCP-Cy5 Peak 7  Median`/Gadget_MFI$`PerCP-Cy5 Peak 6  Median`
+Gadget_PerCP_Cy5_8to7 <- NA
+Gadget_PerCP_Cy5_4to1 <- Gadget_MFI$`PerCP-Cy5 Peak 4  Median`/Gadget_MFI$`PerCP-Cy5 Peak 1  Median`
+Gadget_PerCP_Cy5_3to1 <- Gadget_MFI$`PerCP-Cy5 Peak 3  Median`/Gadget_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Gadget_PerCP_Cy5_MFI_Ratio <- data.frame(Gadget_PerCP_Cy5_2to1,Gadget_PerCP_Cy5_3to2, Gadget_PerCP_Cy5_4to3, Gadget_PerCP_Cy5_5to4, Gadget_PerCP_Cy5_6to5, Gadget_PerCP_Cy5_7to6, Gadget_PerCP_Cy5_8to7, Gadget_PerCP_Cy5_4to1, Gadget_PerCP_Cy5_3to1)
+
+colnames(Gadget_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gadget_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PerCP_Cy5_MFI_Ratio_LONG <- gather(Gadget_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gadget_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Gadget_MFI_Ratios Data Frame
+
+
+Gadget_MFI_Ratios <- rbind(Gadget_Alexa700_MFI_Ratio_LONG, 
+                           Gadget_APC_Cy7_MFI_Ratio_LONG, 
+                           Gadget_APC_MFI_Ratio_LONG, 
+                           Gadget_BUV395_MFI_Ratio_LONG,
+                           Gadget_BUV496_MFI_Ratio_LONG,
+                           Gadget_BUV737_MFI_Ratio_LONG,
+                           Gadget_BV421_MFI_Ratio_LONG,
+                           Gadget_BV510_MFI_Ratio_LONG,
+                           Gadget_BV605_MFI_Ratio_LONG,
+                           Gadget_BV650_MFI_Ratio_LONG,
+                           Gadget_BV711_MFI_Ratio_LONG,
+                           Gadget_BV786_MFI_Ratio_LONG,
+                           Gadget_FITC_MFI_Ratio_LONG,
+                           Gadget_PE_MFI_Ratio_LONG,
+                           Gadget_PE_CF594_MFI_Ratio_LONG,
+                           Gadget_PE_Cy5_MFI_Ratio_LONG,
+                           Gadget_PE_Cy7_MFI_Ratio_LONG,
+                           Gadget_PerCP_Cy5_MFI_Ratio_LONG)
+
+gadget1 <- Gadget_MFI_Ratios %>% filter(Peak != "3:1" & Peak != "4:1") %>% ggplot(aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Gadget: Ratio of Peaks by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#ggsave("gadget1.png", gadget1, width = 10, height = 5, units = c("in"))
+
+
+gadget2 <- ggplot(Gadget_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Gadget: Variation in Peak Separation (06/14 to 06/18)")
+
+#ggsave("gadget2.png", gadget2, width = 12, height = 8, units = c("in"))
+
+gadget12 <- Gadget_MFI_Ratios %>% filter(Peak == "3:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gadget: Peak 3:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+#ggsave("gadget12.png", gadget12, width = 10, height = 5, units = c("in"))
+
+gadget13 <- Gadget_MFI_Ratios %>% filter(Peak == "4:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gadget: Peak 4:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+#ggsave("gadget13.png", gadget13, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+MFI Difference from Baseline
+```{r}
+Gadget_MFI_Day2_Change <- Gadget_MFI[2,]-Gadget_MFI[1,]
+Gadget_MFI_Day3_Change <- Gadget_MFI[3,]-Gadget_MFI[1,]
+Gadget_MFI_Day4_Change <- Gadget_MFI[4,]-Gadget_MFI[1,]
+Gadget_MFI_Day5_Change <- Gadget_MFI[5,]-Gadget_MFI[1,]
+
+Gadget_MFI_Difference <- rbind(Gadget_MFI_Day2_Change,Gadget_MFI_Day3_Change,Gadget_MFI_Day4_Change,Gadget_MFI_Day5_Change)
+
+Gadget_MFI_Difference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gadget_MFI_Difference_LONG <- gather(Gadget_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gadget_MFI_Difference_LONG <- separate(data = Gadget_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gadget_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Gadget_MFI_Difference_LONG$Peak))
+
+
+
+#Gadget_MFI_Difference_LONG %>% kbl(caption = "Gadget MFI Difference Long Data") %>%
+#  kable_classic(full_width = F, html_font = "Arial") 
+
+gadget3 <- ggplot(Gadget_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('MFI Difference by Fluorochrome (Gadget)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#ggsave("gadget3.png", gadget3, width = 10, height = 5, units = c("in"))
+
+
+ggplot(Gadget_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of RCV (06/14 to 06/18)') 
+
+
+
+plot1<- Gadget_MFI_Difference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of MFI Difference from Baseline (06/14 to 06/18)') 
+
+#ggsave("plot1.png", plot1, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+RCV Data
+```{r}
+
+Gadget_RCV <- Gadget %>% select(contains("Robust C"))
+
+Gadget_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Gadget_RCV_LONG <- gather(Gadget_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 7  Robust CV", factor_key=TRUE)
+
+Gadget_RCV_LONG <- separate(data = Gadget_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gadget_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Gadget_RCV_LONG$Peak))
+
+
+gadget7 <- ggplot(Gadget_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of RCV (06/14 to 06/18)') 
+
+gadget8 <- gadget7 + coord_cartesian( ylim = c(0, 10) )
+
+
+#ggsave("gadget7.png", gadget7, width = 10, height = 5, units = c("in"))
+
+#ggsave("gadget8.png", gadget8, width = 10, height = 5, units = c("in"))
+```
+
+
+Day to Day Variation to Assess MFI Stability
+
+```{r}
+Gadget_MFI_Day2D_Change <- Gadget_MFI[2,]-Gadget_MFI[1,]
+Gadget_MFI_Day3D_Change <- Gadget_MFI[3,]-Gadget_MFI[2,]
+Gadget_MFI_Day4D_Change <- Gadget_MFI[4,]-Gadget_MFI[3,]
+Gadget_MFI_Day5D_Change <- Gadget_MFI[5,]-Gadget_MFI[4,]
+
+
+Gadget_MFI_DifferenceDD <- rbind(Gadget_MFI_Day2D_Change,Gadget_MFI_Day3D_Change,Gadget_MFI_Day4D_Change,Gadget_MFI_Day5D_Change)
+
+Gadget_MFI_DifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gadget_MFI_DifferenceDD_LONG <- gather(Gadget_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gadget_MFI_DifferenceDD_LONG <- separate(data = Gadget_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gadget_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Gadget_MFI_Difference_LONG$Peak))
+
+gadget13 <- ggplot(Gadget_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Gadget: MFI Daily Difference by Fluorochrome')
+
+#ggsave("gadget13.png", gadget13, width = 10, height = 5, units = c("in"))
+
+
+plot2<- Gadget_MFI_DifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of MFI Difference Day to Day (06/14 to 06/18)') 
+
+#ggsave("plot2.png", plot2, width = 10, height = 5, units = c("in"))
+
+
+
+```
+
+
+PMTV Data from CST
+```{r}
+Gadget_PMTV <- read_csv("Gadget/PMTV.csv")
+
+Gadget_PMTV <- Gadget_PMTV[c((-1:-2)),c(1,14:18)]
+
+colnames(Gadget_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gadget_PMTV_LONG <- gather(Gadget_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Gadget_PMTV_LONG$Fluorochrome[Gadget_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+Gadget_MASTERDD <- merge(Gadget_MFI_DifferenceDD_LONG, Gadget_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+gadget14 <- Gadget_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget14
+
+#ggsave("gadget14.png", gadget14, width = 10, height = 5, units = c("in"))
+
+
+gadget15 <- Gadget_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget15
+
+#ggsave("gadget15.png", gadget15, width = 10, height = 5, units = c("in"))
+
+
+gadget16 <- Gadget_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget16
+
+#ggsave("gadget16.png", gadget16, width = 10, height = 5, units = c("in"))
+
+
+gadget17 <- Gadget_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget17
+
+#ggsave("gadget17.png", gadget17, width = 10, height = 5, units = c("in"))
+
+gadget18 <- Gadget_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget18
+
+#ggsave("gadget19.png", gadget18, width = 10, height = 5, units = c("in"))
+
+gadget19 <- Gadget_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget19
+
+#ggsave("gadget19.png", gadget19, width = 10, height = 5, units = c("in"))
+
+
+
+gadget20 <- Gadget_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget20
+
+#ggsave("gadget20.png", gadget20, width = 10, height = 5, units = c("in"))
+
+gadget21 <- Gadget_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget21
+
+#ggsave("gadget21.png", gadget21, width = 10, height = 5, units = c("in"))
+
+
+gadget22 <- Gadget_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+gadget22
+
+#ggsave("gadget22.png", gadget22, width = 10, height = 5, units = c("in"))
+
+
+gadget23 <- Gadget_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+#ggsave("gadget23.png", gadget23, width = 7, height = 10, units = c("in"))
+
+
+gadget24 <- Gadget_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+#ggsave("gadget24.png", gadget24, width = 7, height = 10, units = c("in"))
+
+gadget25 <- Gadget_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gadget: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+#ggsave("gadget25.png", gadget25, width = 7, height = 10, units = c("in"))
+```
+
+
+```{r}
+#Daily Percent Change
+Gadget_MFI_Day2D_PercentChange <- ((Gadget_MFI[2,]-Gadget_MFI[1,])/Gadget_MFI[1,]) * 100
+Gadget_MFI_Day3D_PercentChange <- ((Gadget_MFI[3,]-Gadget_MFI[2,])/Gadget_MFI[2,]) * 100
+Gadget_MFI_Day4D_PercentChange <- ((Gadget_MFI[4,]-Gadget_MFI[3,])/Gadget_MFI[3,]) * 100
+Gadget_MFI_Day5D_PercentChange <- ((Gadget_MFI[5,]-Gadget_MFI[4,])/Gadget_MFI[4,]) * 100
+
+
+Gadget_MFI_PercentDifferenceDD <- rbind(Gadget_MFI_Day2D_PercentChange,Gadget_MFI_Day3D_PercentChange,Gadget_MFI_Day4D_PercentChange,Gadget_MFI_Day5D_PercentChange)
+
+Gadget_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gadget_MFI_PercentDifferenceDD_LONG <- gather(Gadget_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gadget_MFI_PercentDifferenceDD_LONG <- separate(data = Gadget_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gadget_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Gadget_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Gadget7<- Gadget_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gadget: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Gadget7.png", Gadget7, width = 10, height = 5, units = c("in"))
+
+
+Gadget8<- Gadget_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gadget: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Gadget8.png", Gadget8, width = 10, height = 5, units = c("in"))
+
+```
+
+
+#Daily Percent Change from Baseseline
+```{r}
+
+Gadget_MFI_Base_PercentChange2 <- ((Gadget_MFI[2,]-Gadget_MFI[1,])/Gadget_MFI[1,]) * 100
+Gadget_MFI_Base_PercentChange3 <- ((Gadget_MFI[3,]-Gadget_MFI[1,])/Gadget_MFI[1,]) * 100
+Gadget_MFI_Base_PercentChange4 <- ((Gadget_MFI[4,]-Gadget_MFI[1,])/Gadget_MFI[1,]) * 100
+Gadget_MFI_Base_PercentChange5 <- ((Gadget_MFI[5,]-Gadget_MFI[1,])/Gadget_MFI[1,]) * 100
+
+
+Gadget_MFI_Base_PercentDifference <- rbind(Gadget_MFI_Base_PercentChange2,Gadget_MFI_Base_PercentChange3,Gadget_MFI_Base_PercentChange4,Gadget_MFI_Base_PercentChange5)
+
+Gadget_MFI_Base_PercentDifference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gadget_MFI_Base_PercentDifference_LONG <- gather(Gadget_MFI_Base_PercentDifference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gadget_MFI_Base_PercentDifference_LONG <- separate(data = Gadget_MFI_Base_PercentDifference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gadget_MFI_Base_PercentDifference_LONG$Peak<-gsub("Median","",as.character(Gadget_MFI_Base_PercentDifference_LONG$Peak))
+
+
+Gadget7<- Gadget_MFI_Base_PercentDifference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gadget: Distribution of MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Gadget7.png", Gadget7, width = 10, height = 5, units = c("in"))
+
+
+Gadget8<-  Gadget_MFI_Base_PercentDifference_LONG  %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gadget: Daily MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Gadget8.png", Gadget8, width = 10, height = 5, units = c("in"))
+
+```
+
+
+```{r}
+
+Gadget_MFI_PercentDifferenceDD_LONG %>% filter(Fluorochrome == "Alexa700") %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
++ facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gadget: Daily MFI Percent Change (06/14 to 06/18)') 
+
+```
+
+
+```{r}
+
+Gadget_MASTERDD <- Gadget_MASTERDD[order(Gadget_MASTERDD$Fluorochrome),]
+
+
+
+Gadget_MASTERDD %>% kbl(caption = "Gadget Data") %>%
+  kable_classic(full_width = F, html_font = "Arial") 
+```
+
+```{r}
+
+Gadget_RCV <- Gadget %>% select(contains("Robust CV"))
+
+Gadget_RCV$`BUV396 Peak 1  Robust CV` <- Gadget_RCV$`BUV395 Peak 3  Robust CV`
+
+Gadget_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Gadget_RCV_LONG <- gather(Gadget_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 7  Robust CV", factor_key=TRUE)
+
+Gadget_RCV_LONG <- separate(data = Gadget_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gadget_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Gadget_RCV_LONG$Peak))
+
+Gadget_RCV_LONG$Instrument <- "Gadget"
+
+Gadget7 <- ggplot(Gadget_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of RCV (06/14 to 06/18)') 
+
+Gadget8 <- Gadget7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("GadgetRCV1.png", Gadget7, width = 10, height = 5, units = c("in"))
+
+ggsave("GadgetRCV2.png", Gadget8, width = 10, height = 5, units = c("in"))
+```
+
+```{r}
+
+Gadget_RCV_LONG$Instrument <- "Gadget"
+Penny_RCV_LONG$Instrument <- "Penny"
+Wallace_RCV_LONG$Instrument <- "Wallace"
+Gromit_RCV_LONG$Instrument <- "Gromit"
+
+RCV_Master <- rbind(Gadget_RCV_LONG, Penny_RCV_LONG, Wallace_RCV_LONG, Gromit_RCV_LONG)
+
+RCV_Master %>% filter(Fluorochrome=="BUV395")
+
+RCV_Master$Fluorochrome[RCV_Master$Fluorochrome == "BUV396"] <- "BUV395"
+
+Peak4RCV <- RCV_Master %>% filter(Peak == 'Peak 4  ') %>% ggplot(aes(x=Instrument, y=RCV)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Distribution of Peak 4 RCV (06/14 to 06/18)') 
+
+Peak4RCV <- Peak4RCV + coord_cartesian( ylim = c(0, 15) )
+
+ggsave("Peak4RCV.png", Peak4RCV, width = 10, height = 5, units = c("in"))
+
+
+Peak3RCV <- RCV_Master %>% filter(Peak == 'Peak 3  ') %>% ggplot(aes(x=Instrument, y=RCV)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Distribution of Peak 3 RCV (06/14 to 06/18)') 
+
+Peak3RCV <- Peak3RCV + coord_cartesian( ylim = c(0, 15) )
+
+ggsave("Peak3RCV.png", Peak3RCV, width = 10, height = 5, units = c("in"))
+
+Peak5RCV <- RCV_Master %>% filter(Peak == 'Peak 5  ') %>% ggplot(aes(x=Instrument, y=RCV)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Distribution of Peak 5 RCV (06/14 to 06/18)') 
+
+Peak5RCV <- Peak5RCV + coord_cartesian( ylim = c(0, 15) )
+
+ggsave("Peak5RCV.png", Peak5RCV, width = 10, height = 5, units = c("in"))
+
+
+Peak4RCV <- RCV_Master %>% filter(Peak == 'Peak 4  ') %>% ggplot(aes(x=Date, y=RCV, group=Instrument, color=Instrument)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_point() + geom_line() + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Peak 4 RCV (06/14 to 06/18)') 
+
+Peak4RCV <- Peak4RCV + coord_cartesian( ylim = c(0, 25) )
+
+ggsave("Peak4RCV.png", Peak4RCV, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+Import 8-Peak Beads Data
+
+```{r}
+Voltage_Gadget_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Gadget")
+Voltage_Gadget_8PK <- Voltage_Gadget_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Gadget_8PK <- as.data.frame(Voltage_Gadget_8PK)
+colnames(Voltage_Gadget_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Gromit_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Gromit")
+Voltage_Gromit_8PK <- Voltage_Gromit_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Gromit_8PK <- as.data.frame(Voltage_Gromit_8PK)
+colnames(Voltage_Gromit_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Wallace_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Wallace")
+Voltage_Wallace_8PK <- Voltage_Wallace_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Wallace_8PK <- as.data.frame(Voltage_Wallace_8PK)
+colnames(Voltage_Wallace_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Penny_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Penny")
+Voltage_Penny_8PK <- Voltage_Penny_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Penny_8PK <- as.data.frame(Voltage_Penny_8PK)
+colnames(Voltage_Penny_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Rosalind_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Rosalind")
+Voltage_Rosalind_8PK <- Voltage_Rosalind_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Rosalind_8PK <- as.data.frame(Voltage_Rosalind_8PK)
+colnames(Voltage_Rosalind_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Tesla_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Tesla")
+Voltage_Tesla_8PK <- Voltage_Tesla_8PK[-c(1:4), c(1, 8:12)]
+Voltage_Tesla_8PK <- as.data.frame(Voltage_Tesla_8PK)
+colnames(Voltage_Tesla_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Gadget_8PK_Long <- gather(Voltage_Gadget_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Gadget_8PK_Long$Instrument <- "Gadget"
+Voltage_Gadget_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Gromit_8PK_Long <- gather(Voltage_Gromit_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Gromit_8PK_Long$Instrument <- "Gromit"
+Voltage_Gromit_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Wallace_8PK_Long <- gather(Voltage_Wallace_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Wallace_8PK_Long$Instrument <- "Wallace"
+Voltage_Wallace_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Penny_8PK_Long <- gather(Voltage_Penny_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Penny_8PK_Long$Instrument <- "Penny"
+Voltage_Penny_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Tesla_8PK_Long <- gather(Voltage_Tesla_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Tesla_8PK_Long$Instrument <- "Tesla"
+Voltage_Tesla_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Rosalind_8PK_Long <- gather(Voltage_Rosalind_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Rosalind_8PK_Long$Instrument <- "Rosalind"
+Voltage_Rosalind_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_8PK <- rbind(Voltage_Gadget_8PK_Long, Voltage_Gromit_8PK_Long, Voltage_Penny_8PK_Long, Voltage_Wallace_8PK_Long)
+
+# CST DATA CLEANING
+
+Gadget_PMTV_LONG$Instrument <- "Gadget"
+Gadget_PMTV_LONG$Method <- "CST"
+colnames(Gadget_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+
+Gromit_PMTV_LONG$Instrument <- "Gromit"
+Gromit_PMTV_LONG$Method <- "CST"
+colnames(Gromit_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+
+Penny_PMTV_LONG$Method <- "CST"
+colnames(Penny_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+Penny_PMTV_LONG$Instrument <- "Penny"
+
+Wallace_PMTV_LONG$Method <- "CST"
+colnames(Wallace_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+Wallace_PMTV_LONG$Instrument <- "Wallace"
+
+Voltage_CST <- rbind(Wallace_PMTV_LONG, Gadget_PMTV_LONG, Gromit_PMTV_LONG, Penny_PMTV_LONG)
+
+Voltage_8PK_CST <- rbind(Voltage_8PK, Voltage_CST)
+
+Voltage_8PK_CST$`Delta PMTV` <- as.numeric(Voltage_8PK_CST$`Delta PMTV`)
+
+Voltage_8PK_CST$Fluorochrome[Voltage_8PK_CST$Fluorochrome == 'BUV396'] <- 'BUV395'
+Voltage_8PK_CST$Fluorochrome[Voltage_8PK_CST$Fluorochrome == 'PerCP-Cy5'] <- 'PerCP-Cy5-5'
+
+CST_8PK <- Voltage_8PK_CST %>% ggplot(aes(x=Fluorochrome, y=`Delta PMTV`, fill=Method)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Instrument, nrow=1) + ggtitle('CST vs 8 Peak Bead PMT Voltage Adjustment by Instrument')
+
+ggsave('CST_8PK.png', CST_8PK, width = 15, height = 6, units = c("in"))
+
+
+CST_8PK2 <- Voltage_8PK_CST %>% filter(Method == "8 Peak Beads") %>% ggplot(aes(x=Date, y=`Delta PMTV`, group = Instrument)) + geom_line(aes(color=Instrument)) + geom_point(aes(color=Instrument))+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('8 PK RB PMT Voltage Adjustment')
+
+ggsave('CST_8PK2.png', CST_8PK2, width = 15, height = 6, units = c("in"))
+
+
+```
+
+
+
+
+rSD Data
+```{r}
+Gadget_rSD <- Gadget %>% select(contains("Robust SD"))
+
+Gadget_rSD$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+Gadget_rSD_LONG <- gather(Gadget_rSD, Peak, rSD, "Alexa700 Peak 1  Robust SD":"PerCP-Cy5 Peak 7  Robust SD", factor_key=TRUE)
+
+Gadget_rSD_LONG <- separate(data = Gadget_rSD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gadget_rSD_LONG$Peak<-gsub("Robust SD","",as.character(Gadget_rSD_LONG$Peak))
+
+
+Gadget_rSD_plot <- ggplot(Gadget_rSD_LONG, aes(x=Peak, y=rSD)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gadget: Distribution of rSD (06/14 to 06/18)') 
+
+Gadget_rSD_plot 
+```
+
+Compile rSD Data
+
+```{r}
+
+
+Gadget_rSD_LONG$Instrument <- "Gadget"
+
+Penny_rSD_LONG$Instrument <- "Penny"
+
+Wallace_rSD_LONG$Instrument <- "Wallace"
+
+Gromit_rSD_LONG$Instrument <- "Gromit"
+
+rSD <- rbind(Gadget_rSD_LONG, Penny_rSD_LONG, Wallace_rSD_LONG, Gromit_rSD_LONG)
+
+rSD$Fluorochrome[rSD$Fluorochrome == 'BUV396'] <- "BUV395"
+
+rSD_Peak4 <- rSD %>% filter(Peak == "Peak 4  ")
+
+rSD_Peak4_plot <- rSD_Peak4 %>% ggplot(aes(x=Instrument, y=rSD)) + geom_boxplot() +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Distribution of Peak 4 rSD (06/14 to 06/18)') 
+
+ggsave("rSD_Peak4_plot.png", rSD_Peak4_plot,  width = 10, height = 5, units = c("in"))
+
+
+
+rSD_Peak5 <- rSD %>% filter(Peak == "Peak 5  ")
+
+rSD_Peak5_plot <- rSD_Peak4 %>% ggplot(aes(x=Instrument, y=rSD)) + geom_boxplot() +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Distribution of rSD (06/14 to 06/18)') 
+
+ggsave("rSD_Peak5_plot.png", rSD_Peak5_plot,  width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+Staining Index Calculation
+(Peak1MFI - Peak1MFI)/(2*rSDPeak4)
+
+```{r}
+
+Gadget_StainIndex <- data.frame(Gadget_MFI_Peak1_Long$Date, Gadget_MFI_Peak1_Long$Fluorochrome, Gadget_MFI_Peak1_Long$MFI, Gadget_MFI_Peak4_Long$MFI)
+
+colnames(Gadget_StainIndex) <- c("Date", "Fluorochrome", "Peak 1 MFI", "Peak 4 MFI")
+Gadget_StainIndex$`Peak 1 - Peak 4` <- Gadget_MFI_Peak1_Long$MFI - Gadget_MFI_Peak4_Long$MFI
+
+
+Gadget_StainIndex 
+
+
+Gadget_Peak4_rSD <- Gadget_rSD_LONG %>% filter(Peak == "Peak 4  ")
+
+Gadget_StainIndex <- merge(Gadget_StainIndex,Gadget_Peak4_rSD, by = c("Date", "Fluorochrome"))
+
+Gadget_StainIndex$`Stain Index` <- Gadget_StainIndex$`Peak 1 - Peak 4`/(2*Gadget_StainIndex$rSD)
+
+Gadget_StainIndex %>% ggplot(aes(x=Date, y=`Stain Index`)) + geom_line() + geom_point() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gadget: Stain Index")
+
+Gadget_SI_Tab <- Gadget_StainIndex %>% filter(Date == "06/14") %>% select(Fluorochrome, `Peak 1 MFI`, `Peak 4 MFI`, rSD, `Stain Index`)
+
+SI_Fig1 <- Gadget_SI_Tab %>% ggplot(aes(x=reorder(Fluorochrome,-`Stain Index`), y= `Stain Index`)) +  geom_bar(stat="identity")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + xlab("Fluorochrome") + ggtitle("Stain Index Ranking for Fortessa-1") + theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+ggsave("SI_Ranaking_1.png", SI_Fig1,  width = 5, height = 5, units = c("in"))
+
+
+
+Gromit_SI_Tab <- Gromit_StainIndex %>% filter(Date == "06/14") %>% select(Fluorochrome, `Peak 1 MFI`, `Peak 4 MFI`, rSD, `Stain Index`)
+
+
+SI_Fig2 <- Gromit_SI_Tab %>% ggplot(aes(x=reorder(Fluorochrome,-`Stain Index`), y= `Stain Index`)) +  geom_bar(stat="identity")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + xlab("Fluorochrome") + ggtitle("Stain Index Ranking for Fortessa-2") + theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+ggsave("SI_Ranking_2.png", SI_Fig2,  width = 5, height = 5, units = c("in"))
+
+
+
+Penny_SI_Tab <- Penny_StainIndex %>% filter(Date == "06/14") %>% select(Fluorochrome, `Peak 1 MFI`, `Peak 4 MFI`, rSD, `Stain Index`)
+
+
+SI_Fig3 <- Penny_SI_Tab %>% ggplot(aes(x=reorder(Fluorochrome,-`Stain Index`), y= `Stain Index`)) +  geom_bar(stat="identity")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + xlab("Fluorochrome") + ggtitle("Stain Index Ranking for Fortessa-3") + theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+ggsave("SI_Ranking_3.png", SI_Fig3,  width = 5, height = 5, units = c("in"))
+
+
+
+Wallace_SI_Tab <- Wallace_StainIndex %>% filter(Date == "06/14") %>% select(Fluorochrome, `Peak 1 MFI`, `Peak 4 MFI`, rSD, `Stain Index`)
+
+
+SI_Fig4 <- Wallace_SI_Tab %>% ggplot(aes(x=reorder(Fluorochrome,-`Stain Index`), y= `Stain Index`)) +  geom_bar(stat="identity")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + xlab("Fluorochrome") + ggtitle("Stain Index Ranking for Fortessa-4") + theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+ggsave("SI_Ranking_4.png", SI_Fig4,  width = 5, height = 5, units = c("in"))
+```
+
+
+Gadget % Change in Stain Index from Baseline
+```{r}
+Gadget_StainIndex2 <- Gadget_StainIndex[,-c(3:7)]
+Gadget_StainIndex_Wide <- spread(Gadget_StainIndex2, Date, `Stain Index`)
+
+Gadget_StainIndex_Wide$Day2Change <- ((Gadget_StainIndex_Wide$`06/15` - Gadget_StainIndex_Wide$`06/14`)/Gadget_StainIndex_Wide$`06/14`) * 100
+Gadget_StainIndex_Wide$Day3Change <- ((Gadget_StainIndex_Wide$`06/16` - Gadget_StainIndex_Wide$`06/14`)/Gadget_StainIndex_Wide$`06/14`) * 100
+Gadget_StainIndex_Wide$Day4Change <- ((Gadget_StainIndex_Wide$`06/17` - Gadget_StainIndex_Wide$`06/14`)/Gadget_StainIndex_Wide$`06/14`) * 100
+Gadget_StainIndex_Wide$Day5Change <- ((Gadget_StainIndex_Wide$`06/18` - Gadget_StainIndex_Wide$`06/14`)/Gadget_StainIndex_Wide$`06/14`) * 100
+
+Gadget_StainIndex_Wide
+```
+
+Import 8PK RB Delta PMTV from BASELINE
+
+```{r}
+
+Voltage_Gadget_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Gadget")
+Voltage_Gadget_8PK <- Voltage_Gadget_8PK[-c(1:4), c(1, 14:18)]
+Voltage_Gadget_8PK <- as.data.frame(Voltage_Gadget_8PK)
+colnames(Voltage_Gadget_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Gromit_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Gromit")
+Voltage_Gromit_8PK <- Voltage_Gromit_8PK[-c(1:4), c(1, 14:18)]
+Voltage_Gromit_8PK <- as.data.frame(Voltage_Gromit_8PK)
+colnames(Voltage_Gromit_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Wallace_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Wallace")
+Voltage_Wallace_8PK <- Voltage_Wallace_8PK[-c(1:4), c(1, 14:18)]
+Voltage_Wallace_8PK <- as.data.frame(Voltage_Wallace_8PK)
+colnames(Voltage_Wallace_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Penny_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+    sheet = "Penny")
+Voltage_Penny_8PK <- Voltage_Penny_8PK[-c(1:4), c(1, 14:18)]
+Voltage_Penny_8PK <- as.data.frame(Voltage_Penny_8PK)
+colnames(Voltage_Penny_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+#Voltage_Rosalind_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+#    sheet = "Rosalind")
+#Voltage_Rosalind_8PK <- Voltage_Rosalind_8PK[-c(1:4), c(1, 14:18)]
+#Voltage_Rosalind_8PK <- as.data.frame(Voltage_Rosalind_8PK)
+#colnames(Voltage_Rosalind_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+#Voltage_Tesla_8PK <- read_excel("~/Desktop/Voltage Data.xlsx", 
+#    sheet = "Tesla")
+#Voltage_Tesla_8PK <- Voltage_Tesla_8PK[-c(1:4), c(1, 14:18)]
+#Voltage_Tesla_8PK <- as.data.frame(Voltage_Tesla_8PK)
+#colnames(Voltage_Tesla_8PK) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Voltage_Gadget_8PK_Long <- gather(Voltage_Gadget_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Gadget_8PK_Long$Instrument <- "Gadget"
+Voltage_Gadget_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Gromit_8PK_Long <- gather(Voltage_Gromit_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Gromit_8PK_Long$Instrument <- "Gromit"
+Voltage_Gromit_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Wallace_8PK_Long <- gather(Voltage_Wallace_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Wallace_8PK_Long$Instrument <- "Wallace"
+Voltage_Wallace_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_Penny_8PK_Long <- gather(Voltage_Penny_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+Voltage_Penny_8PK_Long$Instrument <- "Penny"
+Voltage_Penny_8PK_Long$Method <- "8 Peak Beads"
+
+#Voltage_Tesla_8PK_Long <- gather(Voltage_Tesla_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+#Voltage_Tesla_8PK_Long$Instrument <- "Tesla"
+#Voltage_Tesla_8PK_Long$Method <- "8 Peak Beads"
+
+#Voltage_Rosalind_8PK_Long <- gather(Voltage_Rosalind_8PK, Date, 'Delta PMTV', '06/14':'06/18', factor_key=TRUE)
+#Voltage_Rosalind_8PK_Long$Instrument <- "Rosalind"
+#Voltage_Rosalind_8PK_Long$Method <- "8 Peak Beads"
+
+Voltage_8PK <- rbind(Voltage_Gadget_8PK_Long, Voltage_Gromit_8PK_Long, Voltage_Penny_8PK_Long, Voltage_Wallace_8PK_Long)
+
+
+# CST DATA CLEANING
+
+Gadget_PMTV_LONG$Instrument <- "Gadget"
+Gadget_PMTV_LONG$Method <- "CST"
+colnames(Gadget_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+
+Gromit_PMTV_LONG$Instrument <- "Gromit"
+Gromit_PMTV_LONG$Method <- "CST"
+colnames(Gromit_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+
+Penny_PMTV_LONG$Method <- "CST"
+colnames(Penny_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+Penny_PMTV_LONG$Instrument <- "Penny"
+
+Wallace_PMTV_LONG$Method <- "CST"
+colnames(Wallace_PMTV_LONG) <- c("Fluorochrome", "Date", "Delta PMTV", "Instrument", "Method")
+Wallace_PMTV_LONG$Instrument <- "Wallace"
+
+Voltage_CST <- rbind(Wallace_PMTV_LONG, Gadget_PMTV_LONG, Gromit_PMTV_LONG, Penny_PMTV_LONG)
+
+Voltage_8PK_CST <- rbind(Voltage_8PK, Voltage_CST)
+
+Voltage_8PK_CST$`Delta PMTV` <- as.numeric(Voltage_8PK_CST$`Delta PMTV`)
+
+Voltage_8PK_CST$Fluorochrome[Voltage_8PK_CST$Fluorochrome == 'BUV396'] <- 'BUV395'
+Voltage_8PK_CST$Fluorochrome[Voltage_8PK_CST$Fluorochrome == 'PerCP-Cy5'] <- 'PerCP-Cy5-5'
+
+
+
+CST_8PK <- Voltage_8PK_CST %>% ggplot(aes(x=Fluorochrome, y=`Delta PMTV`, fill=Method)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face="bold")) + facet_wrap(~Instrument, nrow=1,labeller = as_labeller(instrument_names))+ ggtitle("PMT Voltage Change from Baseline for CST and 8 PK Bead") + scale_y_continuous(limits = c(-35,35), breaks=c(-30, -20, -10, 0, 10, 20, 30))+
+    theme( axis.text = element_text( size = 16 ),
+           axis.title = element_text( size = 16, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 20))
+
+ggsave('CST_8PK.png', CST_8PK, width = 15, height = 6, units = c("in"))
+
+
+```

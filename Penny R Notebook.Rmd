@@ -1,0 +1,1205 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+PENNY
+
+```{r}
+
+Penny_FlowJo_table <- read_csv("~/Desktop/Penny FlowJo table 2.csv")
+
+Penny <- as.data.frame(Penny_FlowJo_table)
+Penny <- Penny %>% select(-contains("Freq"))
+Penny <- Penny[-c(6:7),]
+Penny <- Penny[,-1]
+
+Penny[,1:381] <- sapply(Penny[, 1:381], as.numeric)
+
+Penny_MFI <- Penny %>% select(contains("Median"))
+
+Penny_BUV395 <- Penny %>% select(contains("BUV396"))
+Penny_BUV395 <- Penny_BUV395 %>%  select(contains("Median"))
+Penny_BUV395$`BUV396 Peak 1  Median` <- Penny_BUV395$`BUV396 Peak 3  Median`
+
+Penny_MFI$`BUV396 Peak 1  Median` <- Penny_BUV395$`BUV396 Peak 1  Median`
+
+Penny_MFI_Peak1 <- Penny_MFI %>% select(contains("Peak 1"))
+Penny_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Penny_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "BUV395" , "Date")
+
+Penny_MFI_Peak1 <- Penny_MFI_Peak1[,c(19,1:18)]
+
+
+Penny_MFI_Peak1_Long <- gather(Penny_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'BUV395', factor_key=TRUE)
+
+
+
+
+
+Penny_MFI_Peak4 <- Penny_MFI %>% select(contains("Peak 4"))
+Penny_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Penny_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Penny_MFI_Peak4 <- Penny_MFI_Peak4[,c(19,1:18)]
+
+
+Penny_MFI_Peak4_Long <- gather(Penny_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Penny_MFI_Peak4_Long$Difference <- Penny_MFI_Peak1_Long$MFI - Penny_MFI_Peak4_Long$MFI
+
+Penny_MFI_Peak4_Long$'Percent Difference' <- ((Penny_MFI_Peak1_Long$MFI - Penny_MFI_Peak4_Long$MFI) / Penny_MFI_Peak4_Long$MFI) * 100
+
+penny1 <- ggplot(Penny_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Penny: June 14th-18th Peak 1 MFI Data")
+
+penny1 <- penny1 + ylim (88000, 105000)
+
+
+Penny4 <- ggplot(Penny_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Penny: June 14th-18th Peak 4 MFI Data")
+
+
+ggsave("Penny4.png", Penny4, width = 10, height = 5, units = c("in"))
+
+
+#Penny_MFI_Ratios
+
+##Alexa700
+Penny_Alexa700_2to1 <- Penny_MFI$`Alexa700 Peak 2  Median`/Penny_MFI$`Alexa700 Peak 1  Median`
+Penny_Alexa700_3to2 <- Penny_MFI$`Alexa700 Peak 3  Median`/Penny_MFI$`Alexa700 Peak 2  Median`
+Penny_Alexa700_4to3 <- Penny_MFI$`Alexa700 Peak 4  Median`/Penny_MFI$`Alexa700 Peak 3  Median`
+Penny_Alexa700_5to4 <- Penny_MFI$`Alexa700 Peak 5  Median`/Penny_MFI$`Alexa700 Peak 4  Median`
+Penny_Alexa700_6to5 <- Penny_MFI$`Alexa700 Peak 6  Median`/Penny_MFI$`Alexa700 Peak 5  Median`
+Penny_Alexa700_7to6 <- Penny_MFI$`Alexa700 Peak 7  Median`/Penny_MFI$`Alexa700 Peak 6  Median`
+Penny_Alexa700_8to7 <- Penny_MFI$`Alexa700 Peak 8  Median`/Penny_MFI$`Alexa700 Peak 7  Median`
+Penny_Alexa700_4to1 <- Penny_MFI$`Alexa700 Peak 4  Median`/Penny_MFI$`Alexa700 Peak 1  Median`
+Penny_Alexa700_3to1 <- Penny_MFI$`Alexa700 Peak 3  Median`/Penny_MFI$`Alexa700 Peak 1  Median`
+
+
+Penny_Alexa700_MFI_Ratio <- data.frame(Penny_Alexa700_2to1,Penny_Alexa700_3to2, Penny_Alexa700_4to3, Penny_Alexa700_5to4, Penny_Alexa700_6to5, Penny_Alexa700_7to6, Penny_Alexa700_8to7, Penny_Alexa700_4to1, Penny_Alexa700_3to1 )
+
+colnames(Penny_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_Alexa700_MFI_Ratio_LONG <- gather(Penny_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Penny_APC_2to1 <- Penny_MFI$`APC Peak 2  Median`/Penny_MFI$`APC Peak 1  Median`
+Penny_APC_3to2 <- Penny_MFI$`APC Peak 3  Median`/Penny_MFI$`APC Peak 2  Median`
+Penny_APC_4to3 <- Penny_MFI$`APC Peak 4  Median`/Penny_MFI$`APC Peak 3  Median`
+Penny_APC_5to4 <- Penny_MFI$`APC Peak 5  Median`/Penny_MFI$`APC Peak 4  Median`
+Penny_APC_6to5 <- Penny_MFI$`APC Peak 6  Median`/Penny_MFI$`APC Peak 5  Median`
+Penny_APC_7to6 <- Penny_MFI$`APC Peak 7  Median`/Penny_MFI$`APC Peak 6  Median`
+Penny_APC_8to7 <- Penny_MFI$`APC Peak 8  Median`/Penny_MFI$`APC Peak 7  Median`
+Penny_APC_4to1 <- Penny_MFI$`APC Peak 4  Median`/Penny_MFI$`APC Peak 1  Median`
+Penny_APC_3to1 <- Penny_MFI$`APC Peak 3  Median`/Penny_MFI$`APC Peak 1  Median`
+
+Penny_APC_MFI_Ratio <- data.frame(Penny_APC_2to1,Penny_APC_3to2, Penny_APC_4to3, Penny_APC_5to4, Penny_APC_6to5, Penny_APC_7to6, Penny_APC_8to7, Penny_APC_4to1, Penny_APC_3to1)
+
+colnames(Penny_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_APC_MFI_Ratio_LONG <- gather(Penny_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Penny_APC_Cy7_2to1 <- Penny_MFI$`APC-Cy7 Peak 2  Median`/Penny_MFI$`APC-Cy7 Peak 1  Median`
+Penny_APC_Cy7_3to2 <- Penny_MFI$`APC-Cy7 Peak 3  Median`/Penny_MFI$`APC-Cy7 Peak 2  Median`
+Penny_APC_Cy7_4to3 <- Penny_MFI$`APC-Cy7 Peak 4  Median`/Penny_MFI$`APC-Cy7 Peak 3  Median`
+Penny_APC_Cy7_5to4 <- Penny_MFI$`APC-Cy7 Peak 5  Median`/Penny_MFI$`APC-Cy7 Peak 4  Median`
+Penny_APC_Cy7_6to5 <- Penny_MFI$`APC-Cy7 Peak 6  Median`/Penny_MFI$`APC-Cy7 Peak 5  Median`
+Penny_APC_Cy7_7to6 <- Penny_MFI$`APC-Cy7 Peak 7  Median`/Penny_MFI$`APC-Cy7 Peak 6  Median`
+Penny_APC_Cy7_8to7 <- NA
+Penny_APC_Cy7_4to1 <- Penny_MFI$`APC-Cy7 Peak 4  Median`/Penny_MFI$`APC-Cy7 Peak 1  Median`
+Penny_APC_Cy7_3to1 <- Penny_MFI$`APC-Cy7 Peak 3  Median`/Penny_MFI$`APC-Cy7 Peak 1  Median`
+
+Penny_APC_Cy7_MFI_Ratio <- data.frame(Penny_APC_Cy7_2to1,Penny_APC_Cy7_3to2, Penny_APC_Cy7_4to3, Penny_APC_Cy7_5to4, Penny_APC_Cy7_6to5, Penny_APC_Cy7_7to6, Penny_APC_Cy7_8to7, Penny_APC_Cy7_4to1, Penny_APC_Cy7_3to1)
+
+colnames(Penny_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_APC_Cy7_MFI_Ratio_LONG <- gather(Penny_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV396
+
+Penny_BUV396_2to1 <- NA
+Penny_BUV396_3to2 <- Penny_MFI$`BUV396 Peak 3  Median`/Penny_MFI$`BUV396 Peak 2  Median`
+Penny_BUV396_4to3 <- Penny_MFI$`BUV396 Peak 4  Median`/Penny_MFI$`BUV396 Peak 3  Median`
+Penny_BUV396_5to4 <- Penny_MFI$`BUV396 Peak 5  Median`/Penny_MFI$`BUV396 Peak 4  Median`
+Penny_BUV396_6to5 <- Penny_MFI$`BUV396 Peak 6  Median`/Penny_MFI$`BUV396 Peak 5  Median`
+Penny_BUV396_7to6 <- Penny_MFI$`BUV396 Peak 7  Median`/Penny_MFI$`BUV396 Peak 6  Median`
+Penny_BUV396_8to7 <- Penny_MFI$`BUV396 Peak 8  Median`/Penny_MFI$`BUV396 Peak 7  Median`
+Penny_BUV396_4to1 <- NA
+Penny_BUV396_3to1 <- NA
+
+Penny_BUV396_MFI_Ratio <- data.frame(Penny_BUV396_2to1,Penny_BUV396_3to2, Penny_BUV396_4to3, Penny_BUV396_5to4, Penny_BUV396_6to5, Penny_BUV396_7to6, Penny_BUV396_8to7, Penny_BUV396_4to1, Penny_BUV396_3to1)
+
+colnames(Penny_BUV396_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BUV396_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BUV396_MFI_Ratio_LONG <- gather(Penny_BUV396_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BUV396_MFI_Ratio_LONG$Fluorochrome <- "BUV396"
+
+##BUV496
+
+Penny_BUV496_2to1 <- Penny_MFI$`BUV496 Peak 2  Median`/Penny_MFI$`BUV496 Peak 1  Median`
+Penny_BUV496_3to2 <- Penny_MFI$`BUV496 Peak 3  Median`/Penny_MFI$`BUV496 Peak 2  Median`
+Penny_BUV496_4to3 <- Penny_MFI$`BUV496 Peak 4  Median`/Penny_MFI$`BUV496 Peak 3  Median`
+Penny_BUV496_5to4 <- Penny_MFI$`BUV496 Peak 5  Median`/Penny_MFI$`BUV496 Peak 4  Median`
+Penny_BUV496_6to5 <- Penny_MFI$`BUV496 Peak 6  Median`/Penny_MFI$`BUV496 Peak 5  Median`
+Penny_BUV496_7to6 <- Penny_MFI$`BUV496 Peak 7  Median`/Penny_MFI$`BUV496 Peak 6  Median`
+Penny_BUV496_8to7 <- Penny_MFI$`BUV496 Peak 8  Median`/Penny_MFI$`BUV496 Peak 7  Median`
+Penny_BUV496_4to1 <- Penny_MFI$`BUV496 Peak 4  Median`/Penny_MFI$`BUV496 Peak 1  Median`
+Penny_BUV496_3to1 <- Penny_MFI$`BUV496 Peak 3  Median`/Penny_MFI$`BUV496 Peak 1  Median`
+
+
+Penny_BUV496_MFI_Ratio <- data.frame(Penny_BUV496_2to1,Penny_BUV496_3to2, Penny_BUV496_4to3, Penny_BUV496_5to4, Penny_BUV496_6to5, Penny_BUV496_7to6, Penny_BUV496_8to7, Penny_BUV496_4to1, Penny_BUV496_3to1)
+
+colnames(Penny_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BUV496_MFI_Ratio_LONG <- gather(Penny_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Penny_BUV737_2to1 <- Penny_MFI$`BUV737 Peak 2  Median`/Penny_MFI$`BUV737 Peak 1  Median`
+Penny_BUV737_3to2 <- Penny_MFI$`BUV737 Peak 3  Median`/Penny_MFI$`BUV737 Peak 2  Median`
+Penny_BUV737_4to3 <- Penny_MFI$`BUV737 Peak 4  Median`/Penny_MFI$`BUV737 Peak 3  Median`
+Penny_BUV737_5to4 <- Penny_MFI$`BUV737 Peak 5  Median`/Penny_MFI$`BUV737 Peak 4  Median`
+Penny_BUV737_6to5 <- NA
+Penny_BUV737_7to6 <- NA
+Penny_BUV737_8to7 <- NA
+Penny_BUV737_4to1 <- Penny_MFI$`BUV737 Peak 4  Median`/Penny_MFI$`BUV737 Peak 1  Median`
+Penny_BUV737_3to1 <- Penny_MFI$`BUV737 Peak 3  Median`/Penny_MFI$`BUV737 Peak 1  Median`
+
+
+Penny_BUV737_MFI_Ratio <- data.frame(Penny_BUV737_2to1,Penny_BUV737_3to2, Penny_BUV737_4to3, Penny_BUV737_5to4, Penny_BUV737_6to5, Penny_BUV737_7to6, Penny_BUV737_8to7, Penny_BUV737_4to1 , Penny_BUV737_3to1 )
+
+colnames(Penny_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BUV737_MFI_Ratio_LONG <- gather(Penny_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Penny_BV421_2to1 <- Penny_MFI$`BV421 Peak 2  Median`/Penny_MFI$`BV421 Peak 1  Median`
+Penny_BV421_3to2 <- Penny_MFI$`BV421 Peak 3  Median`/Penny_MFI$`BV421 Peak 2  Median`
+Penny_BV421_4to3 <- Penny_MFI$`BV421 Peak 4  Median`/Penny_MFI$`BV421 Peak 3  Median`
+Penny_BV421_5to4 <- Penny_MFI$`BV421 Peak 5  Median`/Penny_MFI$`BV421 Peak 4  Median`
+Penny_BV421_6to5 <- Penny_MFI$`BV421 Peak 6  Median`/Penny_MFI$`BV421 Peak 5  Median`
+Penny_BV421_7to6 <- Penny_MFI$`BV421 Peak 7  Median`/Penny_MFI$`BV421 Peak 6  Median`
+Penny_BV421_8to7 <- Penny_MFI$`BV421 Peak 8  Median`/Penny_MFI$`BV421 Peak 7  Median`
+Penny_BV421_4to1 <- Penny_MFI$`BV421 Peak 4  Median`/Penny_MFI$`BV421 Peak 1  Median`
+Penny_BV421_3to1 <- Penny_MFI$`BV421 Peak 3  Median`/Penny_MFI$`BV421 Peak 1  Median`
+
+Penny_BV421_MFI_Ratio <- data.frame(Penny_BV421_2to1,Penny_BV421_3to2, Penny_BV421_4to3, Penny_BV421_5to4, Penny_BV421_6to5, Penny_BV421_7to6, Penny_BV421_8to7, Penny_BV421_4to1, Penny_BV421_3to1)
+
+colnames(Penny_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV421_MFI_Ratio_LONG <- gather(Penny_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Penny_BV510_2to1 <- Penny_MFI$`BV510 Peak 2  Median`/Penny_MFI$`BV510 Peak 1  Median`
+Penny_BV510_3to2 <- Penny_MFI$`BV510 Peak 3  Median`/Penny_MFI$`BV510 Peak 2  Median`
+Penny_BV510_4to3 <- Penny_MFI$`BV510 Peak 4  Median`/Penny_MFI$`BV510 Peak 3  Median`
+Penny_BV510_5to4 <- Penny_MFI$`BV510 Peak 5  Median`/Penny_MFI$`BV510 Peak 4  Median`
+Penny_BV510_6to5 <- Penny_MFI$`BV510 Peak 6  Median`/Penny_MFI$`BV510 Peak 5  Median`
+Penny_BV510_7to6 <- Penny_MFI$`BV510 Peak 7  Median`/Penny_MFI$`BV510 Peak 6  Median`
+Penny_BV510_8to7 <- Penny_MFI$`BV510 Peak 8  Median`/Penny_MFI$`BV510 Peak 7  Median`
+Penny_BV510_4to1 <- Penny_MFI$`BV510 Peak 4  Median`/Penny_MFI$`BV510 Peak 1  Median`
+Penny_BV510_3to1 <- Penny_MFI$`BV510 Peak 3  Median`/Penny_MFI$`BV510 Peak 1  Median`
+
+Penny_BV510_MFI_Ratio <- data.frame(Penny_BV510_2to1,Penny_BV510_3to2, Penny_BV510_4to3, Penny_BV510_5to4, Penny_BV510_6to5, Penny_BV510_7to6, Penny_BV510_8to7, Penny_BV510_4to1, Penny_BV510_3to1)
+
+colnames(Penny_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV510_MFI_Ratio_LONG <- gather(Penny_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Penny_BV605_2to1 <- Penny_MFI$`BV605 Peak 2  Median`/Penny_MFI$`BV605 Peak 1  Median`
+Penny_BV605_3to2 <- Penny_MFI$`BV605 Peak 3  Median`/Penny_MFI$`BV605 Peak 2  Median`
+Penny_BV605_4to3 <- Penny_MFI$`BV605 Peak 4  Median`/Penny_MFI$`BV605 Peak 3  Median`
+Penny_BV605_5to4 <- Penny_MFI$`BV605 Peak 5  Median`/Penny_MFI$`BV605 Peak 4  Median`
+Penny_BV605_6to5 <- Penny_MFI$`BV605 Peak 6  Median`/Penny_MFI$`BV605 Peak 5  Median`
+Penny_BV605_7to6 <- NA
+Penny_BV605_8to7 <- NA
+Penny_BV605_4to1 <- Penny_MFI$`BV605 Peak 4  Median`/Penny_MFI$`BV605 Peak 1  Median`
+Penny_BV605_3to1 <- Penny_MFI$`BV605 Peak 3  Median`/Penny_MFI$`BV605 Peak 1  Median`
+
+Penny_BV605_MFI_Ratio <- data.frame(Penny_BV605_2to1,Penny_BV605_3to2, Penny_BV605_4to3, Penny_BV605_5to4, Penny_BV605_6to5, Penny_BV605_7to6, Penny_BV605_8to7, Penny_BV605_4to1, Penny_BV605_3to1)
+
+colnames(Penny_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV605_MFI_Ratio_LONG <- gather(Penny_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Penny_BV650_2to1 <- Penny_MFI$`BV650 Peak 2  Median`/Penny_MFI$`BV650 Peak 1  Median`
+Penny_BV650_3to2 <- Penny_MFI$`BV650 Peak 3  Median`/Penny_MFI$`BV650 Peak 2  Median`
+Penny_BV650_4to3 <- Penny_MFI$`BV650 Peak 4  Median`/Penny_MFI$`BV650 Peak 3  Median`
+Penny_BV650_5to4 <- Penny_MFI$`BV650 Peak 5  Median`/Penny_MFI$`BV650 Peak 4  Median`
+Penny_BV650_6to5 <- NA
+Penny_BV650_7to6 <- NA
+Penny_BV650_8to7 <- NA
+Penny_BV650_4to1 <- Penny_MFI$`BV650 Peak 4  Median`/Penny_MFI$`BV650 Peak 1  Median`
+Penny_BV650_3to1 <- Penny_MFI$`BV650 Peak 3  Median`/Penny_MFI$`BV650 Peak 1  Median`
+
+Penny_BV650_MFI_Ratio <- data.frame(Penny_BV650_2to1,Penny_BV650_3to2, Penny_BV650_4to3, Penny_BV650_5to4, Penny_BV650_6to5, Penny_BV650_7to6, Penny_BV650_8to7, Penny_BV650_4to1, Penny_BV650_3to1)
+
+colnames(Penny_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV650_MFI_Ratio_LONG <- gather(Penny_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Penny_BV711_2to1 <- Penny_MFI$`BV711 Peak 2  Median`/Penny_MFI$`BV711 Peak 1  Median`
+Penny_BV711_3to2 <- Penny_MFI$`BV711 Peak 3  Median`/Penny_MFI$`BV711 Peak 2  Median`
+Penny_BV711_4to3 <- Penny_MFI$`BV711 Peak 4  Median`/Penny_MFI$`BV711 Peak 3  Median`
+Penny_BV711_5to4 <- Penny_MFI$`BV711 Peak 5  Median`/Penny_MFI$`BV711 Peak 4  Median`
+Penny_BV711_6to5 <- NA
+Penny_BV711_7to6 <- NA
+Penny_BV711_8to7 <- NA
+Penny_BV711_4to1 <- Penny_MFI$`BV711 Peak 4  Median`/Penny_MFI$`BV711 Peak 1  Median`
+Penny_BV711_3to1 <- Penny_MFI$`BV711 Peak 3  Median`/Penny_MFI$`BV711 Peak 1  Median`
+
+Penny_BV711_MFI_Ratio <- data.frame(Penny_BV711_2to1,Penny_BV711_3to2, Penny_BV711_4to3, Penny_BV711_5to4, Penny_BV711_6to5, Penny_BV711_7to6, Penny_BV711_8to7, Penny_BV711_4to1, Penny_BV711_3to1)
+
+colnames(Penny_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV711_MFI_Ratio_LONG <- gather(Penny_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Penny_BV786_2to1 <- Penny_MFI$`BV786 Peak 2  Median`/Penny_MFI$`BV786 Peak 1  Median`
+Penny_BV786_3to2 <- Penny_MFI$`BV786 Peak 3  Median`/Penny_MFI$`BV786 Peak 2  Median`
+Penny_BV786_4to3 <- Penny_MFI$`BV786 Peak 4  Median`/Penny_MFI$`BV786 Peak 3  Median`
+Penny_BV786_5to4 <- NA
+Penny_BV786_6to5 <- NA
+Penny_BV786_7to6 <- NA
+Penny_BV786_8to7 <- NA
+Penny_BV786_4to1 <- Penny_MFI$`BV786 Peak 4  Median`/Penny_MFI$`BV786 Peak 1  Median`
+Penny_BV786_3to1 <- Penny_MFI$`BV786 Peak 3  Median`/Penny_MFI$`BV786 Peak 1  Median`
+
+Penny_BV786_MFI_Ratio <- data.frame(Penny_BV786_2to1,Penny_BV786_3to2, Penny_BV786_4to3, Penny_BV786_5to4, Penny_BV786_6to5, Penny_BV786_7to6, Penny_BV786_8to7, Penny_BV786_4to1, Penny_BV786_3to1)
+
+colnames(Penny_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_BV786_MFI_Ratio_LONG <- gather(Penny_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Penny_FITC_2to1 <- Penny_MFI$`FITC Peak 2  Median`/Penny_MFI$`FITC Peak 1  Median`
+Penny_FITC_3to2 <- Penny_MFI$`FITC Peak 3  Median`/Penny_MFI$`FITC Peak 2  Median`
+Penny_FITC_4to3 <- Penny_MFI$`FITC Peak 4  Median`/Penny_MFI$`FITC Peak 3  Median`
+Penny_FITC_5to4 <- Penny_MFI$`FITC Peak 5  Median`/Penny_MFI$`FITC Peak 4  Median`
+Penny_FITC_6to5 <- Penny_MFI$`FITC Peak 6  Median`/Penny_MFI$`FITC Peak 5  Median`
+Penny_FITC_7to6 <- Penny_MFI$`FITC Peak 7  Median`/Penny_MFI$`FITC Peak 6  Median`
+Penny_FITC_8to7 <- Penny_MFI$`FITC Peak 8  Median`/Penny_MFI$`FITC Peak 7  Median`
+Penny_FITC_4to1 <- Penny_MFI$`FITC Peak 4  Median`/Penny_MFI$`FITC Peak 1  Median`
+Penny_FITC_3to1 <- Penny_MFI$`FITC Peak 3  Median`/Penny_MFI$`FITC Peak 1  Median`
+
+Penny_FITC_MFI_Ratio <- data.frame(Penny_FITC_2to1,Penny_FITC_3to2, Penny_FITC_4to3, Penny_FITC_5to4, Penny_FITC_6to5, Penny_FITC_7to6, Penny_FITC_8to7, Penny_FITC_4to1, Penny_FITC_3to1)
+
+colnames(Penny_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_FITC_MFI_Ratio_LONG <- gather(Penny_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Penny_PE_2to1 <- Penny_MFI$`PE Peak 2  Median`/Penny_MFI$`PE Peak 1  Median`
+Penny_PE_3to2 <- Penny_MFI$`PE Peak 3  Median`/Penny_MFI$`PE Peak 2  Median`
+Penny_PE_4to3 <- Penny_MFI$`PE Peak 4  Median`/Penny_MFI$`PE Peak 3  Median`
+Penny_PE_5to4 <- Penny_MFI$`PE Peak 5  Median`/Penny_MFI$`PE Peak 4  Median`
+Penny_PE_6to5 <- Penny_MFI$`PE Peak 6  Median`/Penny_MFI$`PE Peak 5  Median`
+Penny_PE_7to6 <- Penny_MFI$`PE Peak 7  Median`/Penny_MFI$`PE Peak 6  Median`
+Penny_PE_8to7 <- Penny_MFI$`PE Peak 8  Median`/Penny_MFI$`PE Peak 7  Median`
+Penny_PE_4to1 <- Penny_MFI$`PE Peak 4  Median`/Penny_MFI$`PE Peak 1  Median`
+Penny_PE_3to1 <- Penny_MFI$`PE Peak 3  Median`/Penny_MFI$`PE Peak 1  Median`
+
+Penny_PE_MFI_Ratio <- data.frame(Penny_PE_2to1,Penny_PE_3to2, Penny_PE_4to3, Penny_PE_5to4, Penny_PE_6to5, Penny_PE_7to6, Penny_PE_8to7, Penny_PE_4to1,Penny_PE_3to1)
+
+colnames(Penny_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PE_MFI_Ratio_LONG <- gather(Penny_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Penny_PE_CF594_2to1 <- Penny_MFI$`PE-CF594 Peak 2  Median`/Penny_MFI$`PE-CF594 Peak 1  Median`
+Penny_PE_CF594_3to2 <- Penny_MFI$`PE-CF594 Peak 3  Median`/Penny_MFI$`PE-CF594 Peak 2  Median`
+Penny_PE_CF594_4to3 <- Penny_MFI$`PE-CF594 Peak 4  Median`/Penny_MFI$`PE-CF594 Peak 3  Median`
+Penny_PE_CF594_5to4 <- Penny_MFI$`PE-CF594 Peak 5  Median`/Penny_MFI$`PE-CF594 Peak 4  Median`
+Penny_PE_CF594_6to5 <- Penny_MFI$`PE-CF594 Peak 6  Median`/Penny_MFI$`PE-CF594 Peak 5  Median`
+Penny_PE_CF594_7to6 <- Penny_MFI$`PE-CF594 Peak 7  Median`/Penny_MFI$`PE-CF594 Peak 6  Median`
+Penny_PE_CF594_8to7 <- NA
+Penny_PE_CF594_4to1 <- Penny_MFI$`PE-CF594 Peak 4  Median`/Penny_MFI$`PE-CF594 Peak 1  Median`
+Penny_PE_CF594_3to1 <- Penny_MFI$`PE-CF594 Peak 3  Median`/Penny_MFI$`PE-CF594 Peak 1  Median`
+
+
+Penny_PE_CF594_MFI_Ratio <- data.frame(Penny_PE_CF594_2to1,Penny_PE_CF594_3to2, Penny_PE_CF594_4to3, Penny_PE_CF594_5to4, Penny_PE_CF594_6to5, Penny_PE_CF594_7to6, Penny_PE_CF594_8to7, Penny_PE_CF594_4to1, Penny_PE_CF594_3to1)
+
+colnames(Penny_PE_CF594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_PE_CF594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PE_CF594_MFI_Ratio_LONG <- gather(Penny_PE_CF594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_PE_CF594_MFI_Ratio_LONG$Fluorochrome <- "PE-CF594"
+
+
+##PE-Cy5
+
+Penny_PE_Cy5_2to1 <- Penny_MFI$`PE-Cy5 Peak 2  Median`/Penny_MFI$`PE-Cy5 Peak 1  Median`
+Penny_PE_Cy5_3to2 <- Penny_MFI$`PE-Cy5 Peak 3  Median`/Penny_MFI$`PE-Cy5 Peak 2  Median`
+Penny_PE_Cy5_4to3 <- Penny_MFI$`PE-Cy5 Peak 4  Median`/Penny_MFI$`PE-Cy5 Peak 3  Median`
+Penny_PE_Cy5_5to4 <- Penny_MFI$`PE-Cy5 Peak 5  Median`/Penny_MFI$`PE-Cy5 Peak 4  Median`
+Penny_PE_Cy5_6to5 <- Penny_MFI$`PE-Cy5 Peak 6  Median`/Penny_MFI$`PE-Cy5 Peak 5  Median`
+Penny_PE_Cy5_7to6 <- Penny_MFI$`PE-Cy5 Peak 7  Median`/Penny_MFI$`PE-Cy5 Peak 6  Median`
+Penny_PE_Cy5_8to7 <- Penny_MFI$`PE-Cy5 Peak 8  Median`/Penny_MFI$`PE-Cy5 Peak 7  Median`
+Penny_PE_Cy5_4to1 <- Penny_MFI$`PE-Cy5 Peak 4  Median`/Penny_MFI$`PE-Cy5 Peak 1  Median`
+Penny_PE_Cy5_3to1 <- Penny_MFI$`PE-Cy5 Peak 3  Median`/Penny_MFI$`PE-Cy5 Peak 1  Median`
+
+
+
+Penny_PE_Cy5_MFI_Ratio <- data.frame(Penny_PE_Cy5_2to1,Penny_PE_Cy5_3to2, Penny_PE_Cy5_4to3, Penny_PE_Cy5_5to4, Penny_PE_Cy5_6to5, Penny_PE_Cy5_7to6, Penny_PE_Cy5_8to7, Penny_PE_Cy5_4to1, Penny_PE_Cy5_3to1)
+
+colnames(Penny_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PE_Cy5_MFI_Ratio_LONG <- gather(Penny_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Penny_PE_Cy7_2to1 <- Penny_MFI$`PE-Cy7 Peak 2  Median`/Penny_MFI$`PE-Cy7 Peak 1  Median`
+Penny_PE_Cy7_3to2 <- Penny_MFI$`PE-Cy7 Peak 3  Median`/Penny_MFI$`PE-Cy7 Peak 2  Median`
+Penny_PE_Cy7_4to3 <- Penny_MFI$`PE-Cy7 Peak 4  Median`/Penny_MFI$`PE-Cy7 Peak 3  Median`
+Penny_PE_Cy7_5to4 <- Penny_MFI$`PE-Cy7 Peak 5  Median`/Penny_MFI$`PE-Cy7 Peak 4  Median`
+Penny_PE_Cy7_6to5 <- Penny_MFI$`PE-Cy7 Peak 6  Median`/Penny_MFI$`PE-Cy7 Peak 5  Median`
+Penny_PE_Cy7_7to6 <- NA
+Penny_PE_Cy7_8to7 <- NA
+Penny_PE_Cy7_4to1 <- Penny_MFI$`PE-Cy7 Peak 4  Median`/Penny_MFI$`PE-Cy7 Peak 1  Median`
+Penny_PE_Cy7_3to1 <- Penny_MFI$`PE-Cy7 Peak 3  Median`/Penny_MFI$`PE-Cy7 Peak 1  Median`
+
+Penny_PE_Cy7_MFI_Ratio <- data.frame(Penny_PE_Cy7_2to1,Penny_PE_Cy7_3to2, Penny_PE_Cy7_4to3, Penny_PE_Cy7_5to4, Penny_PE_Cy7_6to5, Penny_PE_Cy7_7to6, Penny_PE_Cy7_8to7, Penny_PE_Cy7_4to1, Penny_PE_Cy7_3to1)
+
+colnames(Penny_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PE_Cy7_MFI_Ratio_LONG <- gather(Penny_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Penny_PerCP_Cy5_2to1 <- Penny_MFI$`PerCP-Cy5 Peak 2  Median`/Penny_MFI$`PerCP-Cy5 Peak 1  Median`
+Penny_PerCP_Cy5_3to2 <- Penny_MFI$`PerCP-Cy5 Peak 3  Median`/Penny_MFI$`PerCP-Cy5 Peak 2  Median`
+Penny_PerCP_Cy5_4to3 <- Penny_MFI$`PerCP-Cy5 Peak 4  Median`/Penny_MFI$`PerCP-Cy5 Peak 3  Median`
+Penny_PerCP_Cy5_5to4 <- Penny_MFI$`PerCP-Cy5 Peak 5  Median`/Penny_MFI$`PerCP-Cy5 Peak 4  Median`
+Penny_PerCP_Cy5_6to5 <- Penny_MFI$`PerCP-Cy5 Peak 6  Median`/Penny_MFI$`PerCP-Cy5 Peak 5  Median`
+Penny_PerCP_Cy5_7to6 <- Penny_MFI$`PerCP-Cy5 Peak 7  Median`/Penny_MFI$`PerCP-Cy5 Peak 6  Median`
+Penny_PerCP_Cy5_8to7 <- NA
+Penny_PerCP_Cy5_4to1 <- Penny_MFI$`PerCP-Cy5 Peak 4  Median`/Penny_MFI$`PerCP-Cy5 Peak 1  Median`
+Penny_PerCP_Cy5_3to1 <- Penny_MFI$`PerCP-Cy5 Peak 3  Median`/Penny_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Penny_PerCP_Cy5_MFI_Ratio <- data.frame(Penny_PerCP_Cy5_2to1,Penny_PerCP_Cy5_3to2, Penny_PerCP_Cy5_4to3, Penny_PerCP_Cy5_5to4, Penny_PerCP_Cy5_6to5, Penny_PerCP_Cy5_7to6, Penny_PerCP_Cy5_8to7, Penny_PerCP_Cy5_4to1, Penny_PerCP_Cy5_3to1)
+
+colnames(Penny_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Penny_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PerCP_Cy5_MFI_Ratio_LONG <- gather(Penny_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Penny_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Penny_MFI_Ratios Data Frame
+
+
+Penny_MFI_Ratios <- rbind(Penny_Alexa700_MFI_Ratio_LONG, 
+                           Penny_APC_Cy7_MFI_Ratio_LONG, 
+                           Penny_APC_MFI_Ratio_LONG, 
+                           Penny_BUV396_MFI_Ratio_LONG,
+                           Penny_BUV496_MFI_Ratio_LONG,
+                           Penny_BUV737_MFI_Ratio_LONG,
+                           Penny_BV421_MFI_Ratio_LONG,
+                           Penny_BV510_MFI_Ratio_LONG,
+                           Penny_BV605_MFI_Ratio_LONG,
+                           Penny_BV650_MFI_Ratio_LONG,
+                           Penny_BV711_MFI_Ratio_LONG,
+                           Penny_BV786_MFI_Ratio_LONG,
+                           Penny_FITC_MFI_Ratio_LONG,
+                           Penny_PE_MFI_Ratio_LONG,
+                           Penny_PE_CF594_MFI_Ratio_LONG,
+                           Penny_PE_Cy5_MFI_Ratio_LONG,
+                           Penny_PE_Cy7_MFI_Ratio_LONG,
+                           Penny_PerCP_Cy5_MFI_Ratio_LONG)
+
+
+Penny_MFI_PLOT1 <- ggplot(Penny_MFI_Ratios, aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Ratio of Peaks by Fluorochrome (Penny)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+Penny_MFI_PLOT1
+
+
+Penny_MFI_PLOT2 <- ggplot(Penny_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Penny: Variation in Peak Separation (06/14 to 06/18)")
+
+Penny_MFI_PLOT2 
+
+
+
+ggsave('Penny_MFI_PLOT2.png', Penny_MFI_PLOT2,  width = 10, height = 5, units = c("in"))
+
+
+# MFI DIFFERENCE FROM BASELINE
+
+Penny_MFI_Day2_Change <- Penny_MFI[2,]-Penny_MFI[1,]
+Penny_MFI_Day3_Change <- Penny_MFI[3,]-Penny_MFI[1,]
+Penny_MFI_Day4_Change <- Penny_MFI[4,]-Penny_MFI[1,]
+Penny_MFI_Day5_Change <- Penny_MFI[5,]-Penny_MFI[1,]
+
+Penny_MFI_Difference <- rbind(Penny_MFI_Day2_Change,Penny_MFI_Day3_Change,Penny_MFI_Day4_Change,Penny_MFI_Day5_Change)
+
+Penny_MFI_Difference$Day <- c("06/15", "06/16", "07/17", "06/18")
+
+Penny_MFI_Difference_LONG <- gather(Penny_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Penny_MFI_Difference_LONG <- separate(data = Penny_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Penny_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Penny_MFI_Difference_LONG$Peak))
+
+Penny_MFI_PLOT3 <- ggplot(Penny_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Penny: MFI Difference from Baseline by Fluorochrome ') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("Penny_MFI_PLOT3.png", Penny_MFI_PLOT3, width = 10, height = 5, units = c("in"))
+
+
+
+Penny_MFI_PLOT4 <-ggplot(Penny_MFI_Difference_LONG, aes(x=Peak, y=Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=5) + ggtitle('Penny: Distribution of MFI Difference from Baseline (06/14 to 06/18)') 
+
+ggsave("Penny_MFI_PLOT4.png", Penny_MFI_PLOT4, width = 10, height = 5, units = c("in"))
+
+```
+
+
+
+
+
+
+Day to Day Variation
+
+```{r}
+
+Penny_MFI_Day2D_Change <- Penny_MFI[2,]-Penny_MFI[1,]
+Penny_MFI_Day3D_Change <- Penny_MFI[3,]-Penny_MFI[2,]
+Penny_MFI_Day4D_Change <- Penny_MFI[4,]-Penny_MFI[3,]
+Penny_MFI_Day5D_Change <- Penny_MFI[5,]-Penny_MFI[4,]
+
+
+Penny_MFI_DifferenceDD <- rbind(Penny_MFI_Day2D_Change,Penny_MFI_Day3D_Change,Penny_MFI_Day4D_Change,Penny_MFI_Day5D_Change)
+
+Penny_MFI_DifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Penny_MFI_DifferenceDD_LONG <- gather(Penny_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+Penny_MFI_DifferenceDD_LONG <- separate(data = Penny_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Penny_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Penny_MFI_DifferenceDD_LONG$Peak))
+
+Penny13 <- ggplot(Penny_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Penny: MFI Daily Difference by Fluorochrome')
+
+ggsave("Penny13.png", Penny13, width = 10, height = 5, units = c("in"))
+
+
+plot2<- Penny_MFI_DifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Penny: Distribution of MFI Difference Day to Day (06/14 to 06/18)') 
+
+ggsave("Penny2.png", plot2, width = 10, height = 5, units = c("in"))
+```
+
+
+
+```{r}
+
+Penny_PMTV <- read_csv("Penny/PMTV.csv")
+
+Penny_PMTV <- Penny_PMTV[c((-1:-2)),c(1,14:18)]
+
+colnames(Penny_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Penny_PMTV_LONG <- gather(Penny_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Penny_PMTV_LONG$Fluorochrome[Penny_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+Penny_MASTERDD <- merge(Penny_MFI_DifferenceDD_LONG, Penny_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+#Penny_MASTER$Difference <- abs(Penny_MASTER$Difference)
+#Penny_MASTER$Voltage <- abs(Penny_MASTER$Voltage)
+
+Penny5 = ggplot(Penny_MASTERDD, aes(x = Fluorochrome, y = Difference)) + 
+  geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,30), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Peak, nrow=2) + ggtitle("Penny: PMTV and MFI Difference by Fluorochrome")
+
+Penny5
+
+ggsave("Penny5.png", Penny5, width = 10, height = 5, units = c("in"))
+
+
+
+Penny10 <- Penny_MASTERDD %>% filter(Peak=="Peak 1  ") %>% ggplot(aes(Fluorochrome, Difference)) + geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,50), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9)) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Penny: Peak 1 PMTV and MFI Difference by Fluorochrome")
+
+
+ggsave("Penny10.png", Penny10, width = 10, height = 7, units = c("in"))
+
+
+Penny6 <- Penny_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(Voltage, Difference)) + geom_point(aes(fill = Fluorochrome), alpha = 0.75, shape = 21) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Penny: Peak 1 PMTV and MFI Difference by Fluorochrome") + facet_wrap(~Date, nrow=2) 
+
+Penny6
+
+ggsave("Penny6.png", Penny6, width = 10, height = 5, units = c("in"))
+
+#Penny_MASTERDD %>% gather(key=c("Date", "Fluorochrome"), value)
+
+Penny10 <- Penny_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x=Date)) + geom_line(aes(y = Voltage)) + geom_line(aes(y=Difference)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny10
+
+```
+
+```{r}
+Penny14 <- Penny_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny14
+
+ggsave("Penny14.png", Penny14, width = 10, height = 5, units = c("in"))
+
+
+Penny15 <- Penny_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny15
+
+ggsave("Penny15.png", Penny15, width = 10, height = 5, units = c("in"))
+
+
+Penny16 <- Penny_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny16
+
+ggsave("Penny16.png", Penny16, width = 10, height = 5, units = c("in"))
+
+
+Penny17 <- Penny_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny17
+
+ggsave("Penny17.png", Penny17, width = 10, height = 5, units = c("in"))
+
+Penny18 <- Penny_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny18
+
+ggsave("Penny18.png", Penny18, width = 10, height = 5, units = c("in"))
+
+Penny19 <- Penny_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny19
+
+ggsave("Penny19.png", Penny19, width = 10, height = 5, units = c("in"))
+
+
+
+Penny20 <- Penny_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny20
+
+ggsave("Penny20.png", Penny20, width = 10, height = 5, units = c("in"))
+
+Penny21 <- Penny_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny21
+
+ggsave("Penny21.png", Penny21, width = 10, height = 5, units = c("in"))
+
+
+Penny22 <- Penny_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Penny22
+
+ggsave("Penny22.png", Penny22, width = 10, height = 5, units = c("in"))
+
+
+Penny23 <- Penny_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Penny23.png", Penny23, width = 7, height = 10, units = c("in"))
+
+
+Penny24 <- Penny_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Penny24.png", Penny24, width = 7, height = 10, units = c("in"))
+
+Penny25 <- Penny_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Penny: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Penny25.png", Penny25, width = 7, height = 10, units = c("in"))
+
+
+
+Penny_MASTERDD$Instrument <- "Penny"
+
+PWG <- rbind(Penny_MASTERDD, Wallace_MASTERDD, Gadget_MASTERDD)
+
+PWG1 <- PWG  %>%  ggplot(aes(x=Fluorochrome, y=Voltage, fill = Instrument)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of CST Voltages for Gadget, Penny, and Penny")
+
+
+ggsave("PWG1.png", PWG1, width = 12, height = 5, units = c("in"))
+
+
+
+```
+
+```{r}
+
+
+#Daily Percent Change
+Penny_MFI_Day2D_PercentChange <- ((Penny_MFI[2,]-Penny_MFI[1,])/Penny_MFI[1,]) * 100
+Penny_MFI_Day3D_PercentChange <- ((Penny_MFI[3,]-Penny_MFI[2,])/Penny_MFI[2,]) * 100
+Penny_MFI_Day4D_PercentChange <- ((Penny_MFI[4,]-Penny_MFI[3,])/Penny_MFI[3,]) * 100
+Penny_MFI_Day5D_PercentChange <- ((Penny_MFI[5,]-Penny_MFI[4,])/Penny_MFI[4,]) * 100
+
+
+Penny_MFI_PercentDifferenceDD <- rbind(Penny_MFI_Day2D_PercentChange,Penny_MFI_Day3D_PercentChange,Penny_MFI_Day4D_PercentChange,Penny_MFI_Day5D_PercentChange)
+
+Penny_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Penny_MFI_PercentDifferenceDD_LONG <- gather(Penny_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+Penny_MFI_PercentDifferenceDD_LONG <- separate(data = Penny_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Penny_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Penny_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Penny7<- Penny_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Penny: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Penny7.png", Penny7, width = 10, height = 5, units = c("in"))
+
+
+Penny8<- Penny_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Penny: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Penny8.png", Penny8, width = 10, height = 5, units = c("in"))
+```
+
+```{r}
+
+Penny_RCV <- Penny %>% select(contains("Robust CV"))
+
+Penny_RCV$`BUV395 Peak 1  Robust CV` <- Penny_RCV$`BUV396 Peak 3  Robust CV`
+
+Penny_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Penny_RCV_LONG <- gather(Penny_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"BUV395 Peak 1  Robust CV", factor_key=TRUE)
+
+Penny_RCV_LONG <- separate(data = Penny_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Penny_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Penny_RCV_LONG$Peak))
+
+
+Penny7 <- ggplot(Penny_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Penny: Distribution of RCV (06/14 to 06/18)') 
+
+Penny8 <- Penny7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("PennyRCV1.png", Penny7, width = 10, height = 5, units = c("in"))
+
+ggsave("PennyRCV2.png", Penny8, width = 10, height = 5, units = c("in"))
+```
+
+
+```{r}
+Penny_MFI_Base_PercentChange2 <- ((Penny_MFI[2,]-Penny_MFI[1,])/Penny_MFI[1,]) * 100
+Penny_MFI_Base_PercentChange3 <- ((Penny_MFI[3,]-Penny_MFI[1,])/Penny_MFI[1,]) * 100
+Penny_MFI_Base_PercentChange4 <- ((Penny_MFI[4,]-Penny_MFI[1,])/Penny_MFI[1,]) * 100
+Penny_MFI_Base_PercentChange5 <- ((Penny_MFI[5,]-Penny_MFI[1,])/Penny_MFI[1,]) * 100
+
+
+Penny_MFI_Base_PercentDifference <- rbind(Penny_MFI_Base_PercentChange2,Penny_MFI_Base_PercentChange3,Penny_MFI_Base_PercentChange4,Penny_MFI_Base_PercentChange5)
+
+Penny_MFI_Base_PercentDifference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Penny_MFI_Base_PercentDifference_LONG <- gather(Penny_MFI_Base_PercentDifference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 8  Median", factor_key=TRUE)
+
+Penny_MFI_Base_PercentDifference_LONG <- separate(data = Penny_MFI_Base_PercentDifference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Penny_MFI_Base_PercentDifference_LONG$Peak<-gsub("Median","",as.character(Penny_MFI_Base_PercentDifference_LONG$Peak))
+
+
+Penny7<- Penny_MFI_Base_PercentDifference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Penny: Distribution of MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Penny7.png", Penny7, width = 10, height = 5, units = c("in"))
+
+
+Penny8 <-  Penny_MFI_Base_PercentDifference_LONG  %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Fortessa-3: Daily MFI Percent Change from Baseline (06/14 to 06/18)') +
+    theme( axis.text = element_text( size = 8 ),
+           axis.title = element_text( size = 8, face = "bold" ),
+           # The new stuff
+           strip.text = element_text(size = 10)) + ylab("% Change")
+
+ggsave("Penny8.png", Penny8, width = 10, height = 5, units = c("in"))
+
+```
+
+```{r}
+
+Penny_MFI_Base_PercentDifference_LONG$Instrument <- "Fortessa-3"
+Gadget_MFI_Base_PercentDifference_LONG$Instrument <- "Fortessa-1"
+Gromit_MFI_Base_PercentDifference_LONG$Instrument <- "Fortessa-2"
+Wallace_MFI_Base_PercentDifference_LONG$Instrument <- "Fortessa-4"
+
+MFI_Base_Diff_Inst <- rbind(Penny_MFI_Base_PercentDifference_LONG, Gadget_MFI_Base_PercentDifference_LONG, Gromit_MFI_Base_PercentDifference_LONG, Wallace_MFI_Base_PercentDifference_LONG)
+
+MFI_Base_Diff_Inst$Fluorochrome <- as.character(MFI_Base_Diff_Inst$Fluorochrome)
+
+MFI_Base_Diff_Inst$Fluorochrome[MFI_Base_Diff_Inst$Fluorochrome == "BUV396"] <- "BUV395"
+
+MFI_Base_Diff_Inst_4Pks <- MFI_Base_Diff_Inst %>% filter(Peak == "Peak 1  " | Peak == "Peak 2  " | Peak == "Peak 3  " | Peak == "Peak 4  ")
+
+APC <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "APC") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('APC')  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change") + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")
+
+ggsave("APC.png", APC, width = 10, height = 3, units = c("in"))
+
+APCCy7 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "APC-Cy7") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('APC-Cy7')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("APC-Cy7.png", APCCy7, width = 10, height = 3, units = c("in"))
+
+
+Alexa700 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "Alexa700") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('Alexa700')   + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("Alexa700.png", Alexa700, width = 10, height = 3, units = c("in"))
+
+red <- grid.arrange(APC, APCCy7, Alexa700, nrow=2)
+ggsave("red.png", red,width = 18, height = 5, units = c("in"))
+
+PerCPCy5 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "PerCP-Cy5") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('PerCP-Cy5')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("PerCPCy5.png", PerCPCy5, width = 10, height = 3, units = c("in"))
+
+FITC <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "FITC") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('FITC')   + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+ggsave("FITC.png", FITC, width = 10, height = 3, units = c("in"))
+
+blue <- grid.arrange(FITC, PerCPCy5,  nrow=1)
+ggsave("blue.png", blue,width = 18, height = 2.5, units = c("in"))
+
+PECy5 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "PE-Cy5") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('PE-Cy5')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("PE-Cy5.png", PECy5, width = 10, height = 3, units = c("in"))
+
+
+
+
+PECy7 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "PE-Cy7") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('PE-Cy7')  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+ggsave("PE-Cy7.png", PECy7, width = 10, height = 3, units = c("in"))
+
+PE <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "PE") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('PE')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("PE.png", PE, width = 10, height = 3, units = c("in"))
+
+PECF594 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "PE-CF594") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('PE-CF594') + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-5,5)) + ylab("% Change")
+
+ggsave("PE-CF594.png", PECF594, width = 10, height = 3, units = c("in"))
+
+yg <- grid.arrange(PECy5, PECy7, PE, PECF594, nrow=2)
+ggsave("yg.png", yg, width = 18, height = 5, units = c("in"))
+
+
+BV786 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV786')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-15,15)) 
+
+ggsave("BV786.png", BV786, width = 10, height = 3, units = c("in"))
+
+
+BV605 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV605") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV605')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-5,5))
+
+ggsave("BV605.png", BV605, width = 10, height = 3, units = c("in"))
+
+
+BV711 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV711") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV711')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-5,5))
+
+ggsave("BV711.png", BV711, width = 10, height = 3, units = c("in"))
+
+
+BV510 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV510') + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-15,15))
+ggsave("BV510.png", BV510, width = 10, height = 3, units = c("in"))
+
+
+BV650 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV650") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV650')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-5,5))
+
+ggsave("BV650.png", BV650, width = 10, height = 3, units = c("in"))
+
+
+BV421 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BV421')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + ylab("% Change") + scale_y_continuous(limits=c(-15,15)) 
+
+ggsave("BV421.png", BV421, width = 10, height = 3, units = c("in"))
+
+violet <- grid.arrange(BV786, BV605, BV711, BV510, BV650, BV421, nrow=3)
+ggsave("violet.png", violet, width = 18, height = 7.5, units = c("in"))
+
+
+
+BUV395 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BUV395") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BUV395')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + scale_y_continuous(limits=c(-15,15)) 
+ggsave("BUV395.png", BUV395, width = 10, height = 3, units = c("in"))
+
+BUV496 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BUV496") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BUV496')  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") + scale_y_continuous(limits=c(-30,30))
+
+ggsave("BUV496.png", BUV496, width = 10, height = 3, units = c("in"))
+
+BUV737 <- MFI_Base_Diff_Inst_4Pks %>% filter(Fluorochrome == "BUV737") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Instrument, nrow=1) + ggtitle('BUV737') + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")  + scale_y_continuous(limits=c(-15,15)) 
+
+ggsave("BUV737.png", BUV737, width = 10, height = 3, units = c("in"))
+
+uv <- grid.arrange(BUV395, BUV496, BUV737, nrow=2)
+
+ggsave("uv.png", uv, width = 18, height=5, units = c("in"))
+
+
+```
+
+```{r}
+
+Inst_Gromit <- MFI_Base_Diff_Inst_4Pks %>% filter(Instrument == "Fortessa-2") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-2 Daily MFI Percent Change from Baseline (06/14 to 06/18)')  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + scale_y_continuous(limits=c(-25,25)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") +  scale_x_discrete(labels=Dlabels2)
+
+
+ggsave("Inst_Gromit.png", 
+Inst_Gromit, width = 10, height = 5, units = c("in"))
+
+
+
+Inst_Wallace <- MFI_Base_Diff_Inst_4Pks %>% filter(Instrument == "Fortessa-4") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-4 Daily MFI Percent Change from Baseline (06/14 to 06/18)')  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + scale_y_continuous(limits=c(-10,10)) + 
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")+  scale_x_discrete(labels=Dlabels2)
+
+
+ggsave("Inst_Wallace.png", Inst_Wallace, width = 10, height = 5, units = c("in"))
+
+Dlabels2 <- c("Day 2", "Day 3", "Day 4", "Day 5")
+
+Inst_Penny <- MFI_Base_Diff_Inst_4Pks %>% filter(Instrument == "Fortessa-3") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-3 Daily MFI Percent Change from Baseline (06/14 to 06/18)')  + scale_y_continuous(limits=c(-8,8)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")+  scale_x_discrete(labels=Dlabels2)
+
+ggsave("Inst_Penny.png", Inst_Penny, width = 10, height = 5, units = c("in"))
+
+Inst_Gadget <- MFI_Base_Diff_Inst_4Pks %>% filter(Instrument == "Fortessa-1") %>% ggplot(aes(x=Date, y=Difference , color=Peak, group=Peak))+ geom_line()  + geom_point(aes(color=Peak)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-1 Daily MFI Percent Change from Baseline (06/14 to 06/18)')  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + scale_y_continuous(limits=c(-20,20)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")+  scale_x_discrete(labels=Dlabels2)
+
+ggsave("Inst_Gadget.png", Inst_Gadget, width = 10, height = 5, units = c("in"))
+
+```
+
+rSD Data
+```{r}
+Penny_rSD <- Penny %>% select(contains("Robust SD"))
+Penny_rSD$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+Penny_rSD_LONG <- gather(Penny_rSD, Peak, rSD, "Alexa700 Peak 1  Robust SD":"PerCP-Cy5 Peak 8  Robust SD", factor_key=TRUE)
+
+Penny_rSD_LONG <- separate(data = Penny_rSD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Penny_rSD_LONG$Peak<-gsub("Robust SD","",as.character(Penny_rSD_LONG$Peak))
+
+
+Penny_rSD_plot <- ggplot(Penny_rSD_LONG, aes(x=Peak, y=rSD)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Penny: Distribution of rSD (06/14 to 06/18)') 
+
+```
+
+
+Stain Index
+```{r}
+
+Penny_StainIndex <- data.frame(Penny_MFI_Peak1_Long$Date, Penny_MFI_Peak1_Long$Fluorochrome, Penny_MFI_Peak1_Long$MFI, Penny_MFI_Peak4_Long$MFI)
+
+colnames(Penny_StainIndex) <- c("Date", "Fluorochrome", "Peak 1 MFI", "Peak 4 MFI")
+
+Penny_StainIndex$`Peak 1 - Peak 4` <- Penny_MFI_Peak1_Long$MFI - Penny_MFI_Peak4_Long$MFI
+
+
+Penny_Peak4_rSD <- Penny_rSD_LONG %>% filter(Peak == "Peak 4  ")
+Penny_Peak4_rSD$Fluorochrome[Penny_Peak4_rSD$Fluorochrome == "BUV396"] <- "BUV395"
+
+Penny_StainIndex <- merge(Penny_StainIndex,Penny_Peak4_rSD, by = c("Date", "Fluorochrome"))
+
+Penny_StainIndex$`Stain Index` <- Penny_StainIndex$`Peak 1 - Peak 4`/(2*Penny_StainIndex$rSD)
+
+Penny_StainIndex %>% ggplot(aes(x=Date, y=`Stain Index`)) + geom_line() + geom_point() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Penny: Stain Index")
+
+
+Penny_StainIndex2 <- Penny_StainIndex[,-c(3:7)]
+Penny_StainIndex_Wide <- spread(Penny_StainIndex2, Date, `Stain Index`)
+
+Penny_StainIndex_Wide$Day2Change <- ((Penny_StainIndex_Wide$`06/15` - Penny_StainIndex_Wide$`06/14`)/Penny_StainIndex_Wide$`06/14`) * 100
+Penny_StainIndex_Wide$Day3Change <- ((Penny_StainIndex_Wide$`06/16` - Penny_StainIndex_Wide$`06/14`)/Penny_StainIndex_Wide$`06/14`) * 100
+Penny_StainIndex_Wide$Day4Change <- ((Penny_StainIndex_Wide$`06/17` - Penny_StainIndex_Wide$`06/14`)/Penny_StainIndex_Wide$`06/14`) * 100
+Penny_StainIndex_Wide$Day5Change <- ((Penny_StainIndex_Wide$`06/18` - Penny_StainIndex_Wide$`06/14`)/Penny_StainIndex_Wide$`06/14`) * 100
+
+#Penny_StainIndex_Wide %>% filter(Fluorochrome == 'Alexa700')
+```
+
+Instrument Stain Index
+
+```{r}
+
+Gromit_StainIndex$Instrument <- "Gromit"
+StainIndex <- rbind(Gadget_StainIndex, Gromit_StainIndex, Penny_StainIndex, Wallace_StainIndex)
+
+
+SI <- StainIndex %>% ggplot(aes(x=Instrument, y=`Stain Index`)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Stain Index (06/14 to 06/18)") + scale_y_continuous(limits = c(0, 1250))
+
+SI <- StainIndex %>% ggplot(aes(x=Instrument, y=`Stain Index`)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Stain Index (06/14 to 06/18)") + scale_y_continuous(limits = c(0, 1250))
+
+
+ggsave("Stain Index.png", SI,  width = 10, height = 5, units = c("in"))
+
+
+
+SI2 <- StainIndex %>% ggplot(aes(x=Date, y=`Stain Index`, group = Instrument)) + geom_line(aes(color=Instrument))  + geom_point(aes(color=Instrument)) + facet_wrap(~Fluorochrome, nrow=3, scales = 'free') + ggtitle('Fortessa Daily SI (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14))  + 
+  scale_color_manual(values=c("#F8766D","#7CAE00","#00BFC4", "#C77CFF"),
+    labels = c("Fortessa-1", "Fortessa-2", "Fortessa-3", "Fortessa-4")) +  scale_x_discrete(labels=Dlabels)
+
+ggsave("SI2.png", SI2, width = 10, height = 5, units = c("in"))
+
+
+StainIndex_Wide <- spread(StainIndex, Fluorochrome, `Stain Index`)
+
+
+
+Gadget_StainInd_Avg <- StainIndex  %>% filter(Instrument == "Gadget") %>% group_by(Fluorochrome) %>% summarise(Mean=mean(`Stain Index`))
+Gadget_StainInd_Avg= Gadget_StainInd_Avg %>%
+  mutate(Rank_Gadget = order(order(`Mean`)))
+Gadget_StainInd_Avg <- Gadget_StainInd_Avg[,-2]
+
+Gromit_StainInd_Avg <- StainIndex  %>% filter(Instrument == "Gromit") %>% group_by(Fluorochrome) %>% summarise(Mean=mean(`Stain Index`))
+Gromit_StainInd_Avg= Gromit_StainInd_Avg %>%
+  mutate(Rank_Gromit = order(order(`Mean`)))
+Gromit_StainInd_Avg <- Gromit_StainInd_Avg[,-2]
+
+Penny_StainInd_Avg <- StainIndex  %>% filter(Instrument == "Penny") %>% group_by(Fluorochrome) %>% summarise(Mean=mean(`Stain Index`))
+Penny_StainInd_Avg= Penny_StainInd_Avg %>%
+  mutate(Rank_Penny = order(order(`Mean`)))
+Penny_StainInd_Avg <- Penny_StainInd_Avg[,-2]
+
+Wallace_StainInd_Avg <- StainIndex  %>% filter(Instrument == "Wallace") %>% group_by(Fluorochrome) %>% summarise(Mean=mean(`Stain Index`))
+Wallace_StainInd_Avg= Wallace_StainInd_Avg %>%
+  mutate(Rank_Wallace = order(order(`Mean`)))
+Wallace_StainInd_Avg <- Wallace_StainInd_Avg[,-2]
+
+SI_Rank <- merge(Gadget_StainInd_Avg ,Gromit_StainInd_Avg , by="Fluorochrome")
+
+SI_Rank <- merge(SI_Rank, Penny_StainInd_Avg, by="Fluorochrome")
+
+SI_Rank <- merge(SI_Rank, Wallace_StainInd_Avg, by="Fluorochrome")
+
+colnames(SI_Rank) <- c("Fluorochrome", "Gadget", "Gromit", "Penny", "Wallace")
+
+
+kable(SI_Rank, booktabs = T) %>%
+kable_styling(latex_options = c("striped")) 
+```
+
+
+Instrument % Change in Stain Index from Baseline
+
+```{r}
+
+Gromit_StainIndex_Wide$Instrument <- "Gromit"
+StainIndex_Wide_Change <- rbind(Gadget_StainIndex_Wide, Gromit_StainIndex_Wide, Penny_StainIndex_Wide, Wallace_StainIndex_Wide)
+StainIndex_Wide_Change <- StainIndex_Wide_Change[,-c(3:7)]
+colnames(StainIndex_Wide_Change) <- c("Fluorochrome", "Instrument", "Day 2", "Day 3", "Day 4", "Day 5")
+StainIndex_Long_Change <- gather(StainIndex_Wide_Change , Day, `Percent Change`, 'Day 2':'Day 5') 
+
+SI_Change <- StainIndex_Long_Change %>% filter(Instrument == "Penny") %>% ggplot(aes(x=Day, y=`Percent Change`, group = Fluorochrome)) + geom_line(aes(color=Fluorochrome))  + geom_point(aes(color=Fluorochrome)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-3 Daily SI Percent Change from Baseline (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")
+
+
+SI_Change
+
+ggsave("SIChange.png", SI_Change, width = 10, height = 5, units = c("in"))
+
+SI_Change2 <- StainIndex_Long_Change %>% filter(Instrument == "Gadget") %>% ggplot(aes(x=Day, y=`Percent Change`, group = Fluorochrome)) + geom_line(aes(color=Fluorochrome))  + geom_point(aes(color=Fluorochrome)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-1 Daily SI Percent Change from Baseline (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")
+
+
+SI_Change
+
+ggsave("SIChange2.png", SI_Change2, width = 10, height = 5, units = c("in"))
+
+
+SI_Change3 <- StainIndex_Long_Change %>% filter(Instrument == "Gromit") %>% ggplot(aes(x=Day, y=`Percent Change`, group = Fluorochrome)) + geom_line(aes(color=Fluorochrome))  + geom_point(aes(color=Fluorochrome)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-2 Daily SI Percent Change from Baseline (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")
+
+
+SI_Change
+
+ggsave("SIChange3.png", SI_Change3, width = 10, height = 5, units = c("in"))
+
+
+
+SI_Change4 <- StainIndex_Long_Change %>% filter(Instrument == "Wallace") %>% ggplot(aes(x=Day, y=`Percent Change`, group = Fluorochrome)) + geom_line(aes(color=Fluorochrome))  + geom_point(aes(color=Fluorochrome)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Fortessa-4 Daily SI Percent Change from Baseline (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change")
+
+
+SI_Change
+
+ggsave("SIChange4.png", SI_Change4, width = 10, height = 5, units = c("in"))
+
+
+SI_ALL <- StainIndex_Long_Change %>% ggplot(aes(x=Day, y=`Percent Change`, group = Instrument)) + geom_line(aes(color=Instrument))  + geom_point(aes(color=Instrument)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Fortessa Daily SI Percent Change from Baseline (06/14 to 06/18)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) + ylab("% Change") +
+  scale_color_manual(values=c("#F8766D","#7CAE00","#00BFC4", "#C77CFF"),
+    labels = c("Fortessa-1", "Fortessa-2", "Fortessa-3", "Fortessa-4"))
+
+ggsave("SI_ALL.png", SI_ALL, width = 10, height = 5, units = c("in"))
+
+
+```

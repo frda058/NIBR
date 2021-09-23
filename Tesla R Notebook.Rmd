@@ -1,0 +1,851 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(readr)
+library(plotly)
+library(grid)
+
+#library(extrafont)
+#font_import(pattern = "lmroman")
+#loadfonts()
+#par(family = "LM Roman 10")
+setwd("~/Desktop")
+```
+
+
+Tesla Data
+```{r, warning=FALSE}
+Tesla_FlowJo_table <- read_csv("~/Desktop/Tesla FlowJo table.csv")
+
+Tesla <- as.data.frame(Tesla_FlowJo_table)
+Tesla <- Tesla %>% select(-contains("Freq"))
+Tesla <- Tesla[-c(6:7),]
+Tesla <- Tesla[,-1]
+
+Tesla[,1:248] <- sapply(Tesla[, 1:248], as.numeric)
+
+Tesla_MFI <- Tesla %>% select(contains("Median"))
+
+Tesla_MFI_Peak1 <- Tesla_MFI %>% select(contains("Peak 1"))
+Tesla_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Tesla_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Tesla_MFI_Peak1 <- Tesla_MFI_Peak1[,c(18,1:17)]
+
+
+Tesla_MFI_Peak1_Long <- gather(Tesla_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Tesla_MFI_Peak4 <- Tesla_MFI %>% select(contains("Peak 4"))
+Tesla_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Tesla_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Tesla_MFI_Peak4 <- Tesla_MFI_Peak4[,c(19,1:18)]
+
+
+Tesla_MFI_Peak4_Long <- gather(Tesla_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Tesla_MFI_Peak4_Long <- Tesla_MFI_Peak4_Long %>% filter(Fluorochrome != "BUV395")
+
+Tesla_MFI_Peak4_Long$Difference <- Tesla_MFI_Peak1_Long$MFI - Tesla_MFI_Peak4_Long$MFI
+
+Tesla_MFI_Peak4_Long$'Percent Difference' <- ((Tesla_MFI_Peak1_Long$MFI - Tesla_MFI_Peak4_Long$MFI) / Tesla_MFI_Peak4_Long$MFI) * 100
+
+
+
+tesla1 <- ggplot(Tesla_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Tesla: June 14th-18th Peak 1 MFI Data")
+
+tesla1 <- tesla1 + ylim (88000, 105000)
+
+ggsave("tesla1.png", tesla1, width = 10, height = 5, units = c("in"))
+
+
+tesla4 <- ggplot(Tesla_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Tesla: June 14th-18th Peak 4 MFI Data")
+
+
+ggsave("tesla4.png", tesla4, width = 10, height = 5, units = c("in"))
+
+```
+
+```{r}
+#Tesla_MFI_Ratios
+
+##Alexa700
+Tesla_Alexa700_2to1 <- Tesla_MFI$`Alexa700 Peak 2  Median`/Tesla_MFI$`Alexa700 Peak 1  Median`
+Tesla_Alexa700_3to2 <- Tesla_MFI$`Alexa700 Peak 3  Median`/Tesla_MFI$`Alexa700 Peak 2  Median`
+Tesla_Alexa700_4to3 <- Tesla_MFI$`Alexa700 Peak 4  Median`/Tesla_MFI$`Alexa700 Peak 3  Median`
+Tesla_Alexa700_5to4 <- Tesla_MFI$`Alexa700 Peak 5  Median`/Tesla_MFI$`Alexa700 Peak 4  Median`
+Tesla_Alexa700_6to5 <- Tesla_MFI$`Alexa700 Peak 6  Median`/Tesla_MFI$`Alexa700 Peak 5  Median`
+Tesla_Alexa700_7to6 <- Tesla_MFI$`Alexa700 Peak 7  Median`/Tesla_MFI$`Alexa700 Peak 6  Median`
+Tesla_Alexa700_8to7 <- Tesla_MFI$`Alexa700 Peak 8  Median`/Tesla_MFI$`Alexa700 Peak 7  Median`
+Tesla_Alexa700_4to1 <- Tesla_MFI$`Alexa700 Peak 4  Median`/Tesla_MFI$`Alexa700 Peak 1  Median`
+Tesla_Alexa700_3to1 <- Tesla_MFI$`Alexa700 Peak 3  Median`/Tesla_MFI$`Alexa700 Peak 1  Median`
+
+Tesla_Alexa700_MFI_Ratio <- data.frame(Tesla_Alexa700_2to1,Tesla_Alexa700_3to2, Tesla_Alexa700_4to3, Tesla_Alexa700_5to4, Tesla_Alexa700_6to5, Tesla_Alexa700_7to6, Tesla_Alexa700_8to7, Tesla_Alexa700_4to1, Tesla_Alexa700_3to1)
+
+colnames(Tesla_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_Alexa700_MFI_Ratio_LONG <- gather(Tesla_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Tesla_APC_2to1 <- c(Tesla_MFI$`APC Peak 2  Median`/Tesla_MFI$`APC Peak 1  Median`)
+Tesla_APC_3to2 <- Tesla_MFI$`APC Peak 3  Median`/Tesla_MFI$`APC Peak 2  Median`
+Tesla_APC_4to3 <- Tesla_MFI$`APC Peak 4  Median`/Tesla_MFI$`APC Peak 3  Median`
+Tesla_APC_5to4 <- Tesla_MFI$`APC Peak 5  Median`/Tesla_MFI$`APC Peak 4  Median`
+Tesla_APC_6to5 <- Tesla_MFI$`APC Peak 6  Median`/Tesla_MFI$`APC Peak 5  Median`
+Tesla_APC_7to6 <- Tesla_MFI$`APC Peak 7  Median`/Tesla_MFI$`APC Peak 6  Median`
+Tesla_APC_8to7 <- Tesla_MFI$`APC Peak 8  Median`/Tesla_MFI$`APC Peak 7  Median`
+Tesla_APC_4to1 <- c(Tesla_MFI$`APC Peak 4  Median`/Tesla_MFI$`APC Peak 1  Median`)
+Tesla_APC_3to1 <- c(Tesla_MFI$`APC Peak 3  Median`/Tesla_MFI$`APC Peak 1  Median`)
+
+Tesla_APC_MFI_Ratio <- data.frame(Tesla_APC_2to1,Tesla_APC_3to2, Tesla_APC_4to3, Tesla_APC_5to4, Tesla_APC_6to5, Tesla_APC_7to6, Tesla_APC_8to7, Tesla_APC_4to1, Tesla_APC_3to1)
+
+colnames(Tesla_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_APC_MFI_Ratio_LONG <- gather(Tesla_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Tesla_APC_Cy7_2to1 <- c(Tesla_MFI$`APC-Cy7 Peak 2  Median`/Tesla_MFI$`APC-Cy7 Peak 1  Median`)
+Tesla_APC_Cy7_3to2 <- Tesla_MFI$`APC-Cy7 Peak 3  Median`/Tesla_MFI$`APC-Cy7 Peak 2  Median`
+Tesla_APC_Cy7_4to3 <- Tesla_MFI$`APC-Cy7 Peak 4  Median`/Tesla_MFI$`APC-Cy7 Peak 3  Median`
+Tesla_APC_Cy7_5to4 <- Tesla_MFI$`APC-Cy7 Peak 5  Median`/Tesla_MFI$`APC-Cy7 Peak 4  Median`
+Tesla_APC_Cy7_6to5 <- Tesla_MFI$`APC-Cy7 Peak 6  Median`/Tesla_MFI$`APC-Cy7 Peak 5  Median`
+Tesla_APC_Cy7_7to6 <- Tesla_MFI$`APC-Cy7 Peak 7  Median`/Tesla_MFI$`APC-Cy7 Peak 6  Median`
+Tesla_APC_Cy7_8to7 <- NA
+Tesla_APC_Cy7_4to1 <- c(Tesla_MFI$`APC-Cy7 Peak 4  Median`/Tesla_MFI$`APC-Cy7 Peak 1  Median`)
+Tesla_APC_Cy7_3to1 <- c(Tesla_MFI$`APC-Cy7 Peak 3  Median`/Tesla_MFI$`APC-Cy7 Peak 1  Median`)
+
+Tesla_APC_Cy7_MFI_Ratio <- data.frame(Tesla_APC_Cy7_2to1,Tesla_APC_Cy7_3to2, Tesla_APC_Cy7_4to3, Tesla_APC_Cy7_5to4, Tesla_APC_Cy7_6to5, Tesla_APC_Cy7_7to6, Tesla_APC_Cy7_8to7, Tesla_APC_Cy7_4to1, Tesla_APC_Cy7_3to1)
+
+colnames(Tesla_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_APC_Cy7_MFI_Ratio_LONG <- gather(Tesla_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV395
+
+Tesla_BUV395_2to1 <- NA
+Tesla_BUV395_3to2 <- Tesla_MFI$`BUV395 Peak 3  Median`/Tesla_MFI$`BUV395 Peak 2  Median`
+Tesla_BUV395_4to3 <- Tesla_MFI$`BUV395 Peak 4  Median`/Tesla_MFI$`BUV395 Peak 3  Median`
+Tesla_BUV395_5to4 <- Tesla_MFI$`BUV395 Peak 5  Median`/Tesla_MFI$`BUV395 Peak 4  Median`
+Tesla_BUV395_6to5 <- Tesla_MFI$`BUV395 Peak 6  Median`/Tesla_MFI$`BUV395 Peak 5  Median`
+Tesla_BUV395_7to6 <- Tesla_MFI$`BUV395 Peak 7  Median`/Tesla_MFI$`BUV395 Peak 6  Median`
+Tesla_BUV395_8to7 <- Tesla_MFI$`BUV395 Peak 8  Median`/Tesla_MFI$`BUV395 Peak 7  Median`
+Tesla_BUV395_4to1 <- NA
+Tesla_BUV395_3to1 <- NA
+
+Tesla_BUV395_MFI_Ratio <- data.frame(Tesla_BUV395_2to1,Tesla_BUV395_3to2, Tesla_BUV395_4to3, Tesla_BUV395_5to4, Tesla_BUV395_6to5, Tesla_BUV395_7to6, Tesla_BUV395_8to7, Tesla_BUV395_4to1 , Tesla_BUV395_3to1 )
+
+colnames(Tesla_BUV395_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BUV395_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BUV395_MFI_Ratio_LONG <- gather(Tesla_BUV395_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BUV395_MFI_Ratio_LONG$Fluorochrome <- "BUV395"
+
+##BUV496
+
+Tesla_BUV496_2to1 <- Tesla_MFI$`BUV496 Peak 2  Median`/Tesla_MFI$`BUV496 Peak 1  Median`
+Tesla_BUV496_3to2 <- Tesla_MFI$`BUV496 Peak 3  Median`/Tesla_MFI$`BUV496 Peak 2  Median`
+Tesla_BUV496_4to3 <- Tesla_MFI$`BUV496 Peak 4  Median`/Tesla_MFI$`BUV496 Peak 3  Median`
+Tesla_BUV496_5to4 <- Tesla_MFI$`BUV496 Peak 5  Median`/Tesla_MFI$`BUV496 Peak 4  Median`
+Tesla_BUV496_6to5 <- Tesla_MFI$`BUV496 Peak 6  Median`/Tesla_MFI$`BUV496 Peak 5  Median`
+Tesla_BUV496_7to6 <- Tesla_MFI$`BUV496 Peak 7  Median`/Tesla_MFI$`BUV496 Peak 6  Median`
+Tesla_BUV496_8to7 <- Tesla_MFI$`BUV496 Peak 8  Median`/Tesla_MFI$`BUV496 Peak 7  Median`
+Tesla_BUV496_4to1 <- Tesla_MFI$`BUV496 Peak 4  Median`/Tesla_MFI$`BUV496 Peak 1  Median`
+Tesla_BUV496_3to1 <- Tesla_MFI$`BUV496 Peak 3  Median`/Tesla_MFI$`BUV496 Peak 1  Median`
+
+Tesla_BUV496_MFI_Ratio <- data.frame(Tesla_BUV496_2to1,Tesla_BUV496_3to2, Tesla_BUV496_4to3, Tesla_BUV496_5to4, Tesla_BUV496_6to5, Tesla_BUV496_7to6, Tesla_BUV496_8to7, Tesla_BUV496_4to1, Tesla_BUV496_3to1)
+
+colnames(Tesla_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BUV496_MFI_Ratio_LONG <- gather(Tesla_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Tesla_BUV737_2to1 <- Tesla_MFI$`BUV737 Peak 2  Median`/Tesla_MFI$`BUV737 Peak 1  Median`
+Tesla_BUV737_3to2 <- Tesla_MFI$`BUV737 Peak 3  Median`/Tesla_MFI$`BUV737 Peak 2  Median`
+Tesla_BUV737_4to3 <- Tesla_MFI$`BUV737 Peak 4  Median`/Tesla_MFI$`BUV737 Peak 3  Median`
+Tesla_BUV737_5to4 <- Tesla_MFI$`BUV737 Peak 5  Median`/Tesla_MFI$`BUV737 Peak 4  Median`
+Tesla_BUV737_6to5 <- NA
+Tesla_BUV737_7to6 <- NA
+Tesla_BUV737_8to7 <- NA
+Tesla_BUV737_4to1 <- Tesla_MFI$`BUV737 Peak 4  Median`/Tesla_MFI$`BUV737 Peak 1  Median`
+Tesla_BUV737_3to1 <- Tesla_MFI$`BUV737 Peak 3  Median`/Tesla_MFI$`BUV737 Peak 1  Median`
+
+
+Tesla_BUV737_MFI_Ratio <- data.frame(Tesla_BUV737_2to1,Tesla_BUV737_3to2, Tesla_BUV737_4to3, Tesla_BUV737_5to4, Tesla_BUV737_6to5, Tesla_BUV737_7to6, Tesla_BUV737_8to7, Tesla_BUV737_4to1, Tesla_BUV737_3to1)
+
+colnames(Tesla_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BUV737_MFI_Ratio_LONG <- gather(Tesla_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Tesla_BV421_2to1 <- Tesla_MFI$`BV421 Peak 2  Median`/Tesla_MFI$`BV421 Peak 1  Median`
+Tesla_BV421_3to2 <- Tesla_MFI$`BV421 Peak 3  Median`/Tesla_MFI$`BV421 Peak 2  Median`
+Tesla_BV421_4to3 <- Tesla_MFI$`BV421 Peak 4  Median`/Tesla_MFI$`BV421 Peak 3  Median`
+Tesla_BV421_5to4 <- Tesla_MFI$`BV421 Peak 5  Median`/Tesla_MFI$`BV421 Peak 4  Median`
+Tesla_BV421_6to5 <- Tesla_MFI$`BV421 Peak 6  Median`/Tesla_MFI$`BV421 Peak 5  Median`
+Tesla_BV421_7to6 <- Tesla_MFI$`BV421 Peak 7  Median`/Tesla_MFI$`BV421 Peak 6  Median`
+Tesla_BV421_8to7 <- Tesla_MFI$`BV421 Peak 8  Median`/Tesla_MFI$`BV421 Peak 7  Median`
+Tesla_BV421_4to1 <- Tesla_MFI$`BV421 Peak 4  Median`/Tesla_MFI$`BV421 Peak 1  Median`
+Tesla_BV421_3to1 <- Tesla_MFI$`BV421 Peak 3  Median`/Tesla_MFI$`BV421 Peak 1  Median`
+
+Tesla_BV421_MFI_Ratio <- data.frame(Tesla_BV421_2to1,Tesla_BV421_3to2, Tesla_BV421_4to3, Tesla_BV421_5to4, Tesla_BV421_6to5, Tesla_BV421_7to6, Tesla_BV421_8to7, Tesla_BV421_4to1, Tesla_BV421_3to1)
+
+colnames(Tesla_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV421_MFI_Ratio_LONG <- gather(Tesla_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Tesla_BV510_2to1 <- Tesla_MFI$`BV510 Peak 2  Median`/Tesla_MFI$`BV510 Peak 1  Median`
+Tesla_BV510_3to2 <- Tesla_MFI$`BV510 Peak 3  Median`/Tesla_MFI$`BV510 Peak 2  Median`
+Tesla_BV510_4to3 <- Tesla_MFI$`BV510 Peak 4  Median`/Tesla_MFI$`BV510 Peak 3  Median`
+Tesla_BV510_5to4 <- Tesla_MFI$`BV510 Peak 5  Median`/Tesla_MFI$`BV510 Peak 4  Median`
+Tesla_BV510_6to5 <- Tesla_MFI$`BV510 Peak 6  Median`/Tesla_MFI$`BV510 Peak 5  Median`
+Tesla_BV510_7to6 <- Tesla_MFI$`BV510 Peak 7  Median`/Tesla_MFI$`BV510 Peak 6  Median`
+Tesla_BV510_8to7 <- Tesla_MFI$`BV510 Peak 8  Median`/Tesla_MFI$`BV510 Peak 7  Median`
+Tesla_BV510_4to1 <- Tesla_MFI$`BV510 Peak 4  Median`/Tesla_MFI$`BV510 Peak 1  Median`
+Tesla_BV510_3to1 <- Tesla_MFI$`BV510 Peak 3  Median`/Tesla_MFI$`BV510 Peak 1  Median`
+
+Tesla_BV510_MFI_Ratio <- data.frame(Tesla_BV510_2to1,Tesla_BV510_3to2, Tesla_BV510_4to3, Tesla_BV510_5to4, Tesla_BV510_6to5, Tesla_BV510_7to6, Tesla_BV510_8to7, Tesla_BV510_4to1, Tesla_BV510_3to1)
+
+colnames(Tesla_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV510_MFI_Ratio_LONG <- gather(Tesla_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Tesla_BV605_2to1 <- Tesla_MFI$`BV605 Peak 2  Median`/Tesla_MFI$`BV605 Peak 1  Median`
+Tesla_BV605_3to2 <- Tesla_MFI$`BV605 Peak 3  Median`/Tesla_MFI$`BV605 Peak 2  Median`
+Tesla_BV605_4to3 <- Tesla_MFI$`BV605 Peak 4  Median`/Tesla_MFI$`BV605 Peak 3  Median`
+Tesla_BV605_5to4 <- Tesla_MFI$`BV605 Peak 5  Median`/Tesla_MFI$`BV605 Peak 4  Median`
+Tesla_BV605_6to5 <- Tesla_MFI$`BV605 Peak 6  Median`/Tesla_MFI$`BV605 Peak 5  Median`
+Tesla_BV605_7to6 <- NA
+Tesla_BV605_8to7 <- NA
+Tesla_BV605_4to1 <- Tesla_MFI$`BV605 Peak 4  Median`/Tesla_MFI$`BV605 Peak 1  Median`
+Tesla_BV605_3to1 <- Tesla_MFI$`BV605 Peak 3  Median`/Tesla_MFI$`BV605 Peak 1  Median`
+
+
+Tesla_BV605_MFI_Ratio <- data.frame(Tesla_BV605_2to1,Tesla_BV605_3to2, Tesla_BV605_4to3, Tesla_BV605_5to4, Tesla_BV605_6to5, Tesla_BV605_7to6, Tesla_BV605_8to7, Tesla_BV605_4to1, Tesla_BV605_3to1)
+
+colnames(Tesla_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV605_MFI_Ratio_LONG <- gather(Tesla_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Tesla_BV650_2to1 <- Tesla_MFI$`BV650 Peak 2  Median`/Tesla_MFI$`BV650 Peak 1  Median`
+Tesla_BV650_3to2 <- Tesla_MFI$`BV650 Peak 3  Median`/Tesla_MFI$`BV650 Peak 2  Median`
+Tesla_BV650_4to3 <- Tesla_MFI$`BV650 Peak 4  Median`/Tesla_MFI$`BV650 Peak 3  Median`
+Tesla_BV650_5to4 <- Tesla_MFI$`BV650 Peak 5  Median`/Tesla_MFI$`BV650 Peak 4  Median`
+Tesla_BV650_6to5 <- Tesla_MFI$`BV650 Peak 6  Median`/Tesla_MFI$`BV650 Peak 5  Median`
+Tesla_BV650_7to6 <- NA
+Tesla_BV650_8to7 <- NA
+Tesla_BV650_4to1 <- Tesla_MFI$`BV650 Peak 4  Median`/Tesla_MFI$`BV650 Peak 1  Median`
+Tesla_BV650_3to1 <- Tesla_MFI$`BV650 Peak 3  Median`/Tesla_MFI$`BV650 Peak 1  Median`
+
+Tesla_BV650_MFI_Ratio <- data.frame(Tesla_BV650_2to1,Tesla_BV650_3to2, Tesla_BV650_4to3, Tesla_BV650_5to4, Tesla_BV650_6to5, Tesla_BV650_7to6, Tesla_BV650_8to7, Tesla_BV650_4to1, Tesla_BV650_3to1)
+
+colnames(Tesla_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV650_MFI_Ratio_LONG <- gather(Tesla_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Tesla_BV711_2to1 <- Tesla_MFI$`BV711 Peak 2  Median`/Tesla_MFI$`BV711 Peak 1  Median`
+Tesla_BV711_3to2 <- Tesla_MFI$`BV711 Peak 3  Median`/Tesla_MFI$`BV711 Peak 2  Median`
+Tesla_BV711_4to3 <- Tesla_MFI$`BV711 Peak 4  Median`/Tesla_MFI$`BV711 Peak 3  Median`
+Tesla_BV711_5to4 <- Tesla_MFI$`BV711 Peak 5  Median`/Tesla_MFI$`BV711 Peak 4  Median`
+Tesla_BV711_6to5 <- NA
+Tesla_BV711_7to6 <- NA
+Tesla_BV711_8to7 <- NA
+Tesla_BV711_4to1 <- Tesla_MFI$`BV711 Peak 4  Median`/Tesla_MFI$`BV711 Peak 1  Median`
+Tesla_BV711_3to1 <- Tesla_MFI$`BV711 Peak 3  Median`/Tesla_MFI$`BV711 Peak 1  Median`
+
+Tesla_BV711_MFI_Ratio <- data.frame(Tesla_BV711_2to1,Tesla_BV711_3to2, Tesla_BV711_4to3, Tesla_BV711_5to4, Tesla_BV711_6to5, Tesla_BV711_7to6, Tesla_BV711_8to7, Tesla_BV711_4to1, Tesla_BV711_3to1)
+
+colnames(Tesla_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV711_MFI_Ratio_LONG <- gather(Tesla_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Tesla_BV786_2to1 <- Tesla_MFI$`BV786 Peak 2  Median`/Tesla_MFI$`BV786 Peak 1  Median`
+Tesla_BV786_3to2 <- Tesla_MFI$`BV786 Peak 3  Median`/Tesla_MFI$`BV786 Peak 2  Median`
+Tesla_BV786_4to3 <- Tesla_MFI$`BV786 Peak 4  Median`/Tesla_MFI$`BV786 Peak 3  Median`
+Tesla_BV786_5to4 <- NA
+Tesla_BV786_6to5 <- NA
+Tesla_BV786_7to6 <- NA
+Tesla_BV786_8to7 <- NA
+Tesla_BV786_4to1 <- Tesla_MFI$`BV786 Peak 4  Median`/Tesla_MFI$`BV786 Peak 1  Median`
+Tesla_BV786_3to1 <- Tesla_MFI$`BV786 Peak 3  Median`/Tesla_MFI$`BV786 Peak 1  Median`
+
+Tesla_BV786_MFI_Ratio <- data.frame(Tesla_BV786_2to1,Tesla_BV786_3to2, Tesla_BV786_4to3, Tesla_BV786_5to4, Tesla_BV786_6to5, Tesla_BV786_7to6, Tesla_BV786_8to7, Tesla_BV786_4to1, Tesla_BV786_3to1)
+
+colnames(Tesla_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_BV786_MFI_Ratio_LONG <- gather(Tesla_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Tesla_FITC_2to1 <- Tesla_MFI$`FITC Peak 2  Median`/Tesla_MFI$`FITC Peak 1  Median`
+Tesla_FITC_3to2 <- Tesla_MFI$`FITC Peak 3  Median`/Tesla_MFI$`FITC Peak 2  Median`
+Tesla_FITC_4to3 <- Tesla_MFI$`FITC Peak 4  Median`/Tesla_MFI$`FITC Peak 3  Median`
+Tesla_FITC_5to4 <- Tesla_MFI$`FITC Peak 5  Median`/Tesla_MFI$`FITC Peak 4  Median`
+Tesla_FITC_6to5 <- Tesla_MFI$`FITC Peak 6  Median`/Tesla_MFI$`FITC Peak 5  Median`
+Tesla_FITC_7to6 <- Tesla_MFI$`FITC Peak 7  Median`/Tesla_MFI$`FITC Peak 6  Median`
+Tesla_FITC_8to7 <- Tesla_MFI$`FITC Peak 8  Median`/Tesla_MFI$`FITC Peak 7  Median`
+Tesla_FITC_4to1 <- Tesla_MFI$`FITC Peak 4  Median`/Tesla_MFI$`FITC Peak 1  Median`
+Tesla_FITC_3to1 <- Tesla_MFI$`FITC Peak 3  Median`/Tesla_MFI$`FITC Peak 1  Median`
+
+Tesla_FITC_MFI_Ratio <- data.frame(Tesla_FITC_2to1,Tesla_FITC_3to2, Tesla_FITC_4to3, Tesla_FITC_5to4, Tesla_FITC_6to5, Tesla_FITC_7to6, Tesla_FITC_8to7, Tesla_FITC_4to1, Tesla_FITC_3to1)
+
+colnames(Tesla_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_FITC_MFI_Ratio_LONG <- gather(Tesla_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Tesla_PE_2to1 <- Tesla_MFI$`PE Peak 2  Median`/Tesla_MFI$`PE Peak 1  Median`
+Tesla_PE_3to2 <- Tesla_MFI$`PE Peak 3  Median`/Tesla_MFI$`PE Peak 2  Median`
+Tesla_PE_4to3 <- Tesla_MFI$`PE Peak 4  Median`/Tesla_MFI$`PE Peak 3  Median`
+Tesla_PE_5to4 <- Tesla_MFI$`PE Peak 5  Median`/Tesla_MFI$`PE Peak 4  Median`
+Tesla_PE_6to5 <- Tesla_MFI$`PE Peak 6  Median`/Tesla_MFI$`PE Peak 5  Median`
+Tesla_PE_7to6 <- Tesla_MFI$`PE Peak 7  Median`/Tesla_MFI$`PE Peak 6  Median`
+Tesla_PE_8to7 <- Tesla_MFI$`PE Peak 8  Median`/Tesla_MFI$`PE Peak 7  Median`
+Tesla_PE_4to1 <- Tesla_MFI$`PE Peak 4  Median`/Tesla_MFI$`PE Peak 1  Median`
+Tesla_PE_3to1 <- Tesla_MFI$`PE Peak 3  Median`/Tesla_MFI$`PE Peak 1  Median`
+
+Tesla_PE_MFI_Ratio <- data.frame(Tesla_PE_2to1,Tesla_PE_3to2, Tesla_PE_4to3, Tesla_PE_5to4, Tesla_PE_6to5, Tesla_PE_7to6, Tesla_PE_8to7, Tesla_PE_4to1, Tesla_PE_3to1)
+
+colnames(Tesla_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PE_MFI_Ratio_LONG <- gather(Tesla_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Tesla_PE_CF594_2to1 <- Tesla_MFI$`PE-CF594 Peak 2  Median`/Tesla_MFI$`PE-CF594 Peak 1  Median`
+Tesla_PE_CF594_3to2 <- Tesla_MFI$`PE-CF594 Peak 3  Median`/Tesla_MFI$`PE-CF594 Peak 2  Median`
+Tesla_PE_CF594_4to3 <- Tesla_MFI$`PE-CF594 Peak 4  Median`/Tesla_MFI$`PE-CF594 Peak 3  Median`
+Tesla_PE_CF594_5to4 <- Tesla_MFI$`PE-CF594 Peak 5  Median`/Tesla_MFI$`PE-CF594 Peak 4  Median`
+Tesla_PE_CF594_6to5 <- Tesla_MFI$`PE-CF594 Peak 6  Median`/Tesla_MFI$`PE-CF594 Peak 5  Median`
+Tesla_PE_CF594_7to6 <- Tesla_MFI$`PE-CF594 Peak 7  Median`/Tesla_MFI$`PE-CF594 Peak 6  Median`
+Tesla_PE_CF594_8to7 <- Tesla_MFI$`PE-CF594 Peak 8  Median`/Tesla_MFI$`PE-CF594 Peak 7  Median`
+Tesla_PE_CF594_4to1 <- Tesla_MFI$`PE-CF594 Peak 4  Median`/Tesla_MFI$`PE-CF594 Peak 1  Median`
+Tesla_PE_CF594_3to1 <- Tesla_MFI$`PE-CF594 Peak 3  Median`/Tesla_MFI$`PE-CF594 Peak 1  Median`
+
+
+Tesla_PE_CF594_MFI_Ratio <- data.frame(Tesla_PE_CF594_2to1,Tesla_PE_CF594_3to2, Tesla_PE_CF594_4to3, Tesla_PE_CF594_5to4, Tesla_PE_CF594_6to5, Tesla_PE_CF594_7to6, Tesla_PE_CF594_8to7, Tesla_PE_CF594_4to1 ,Tesla_PE_CF594_3to1 )
+
+colnames(Tesla_PE_CF594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_PE_CF594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PE_CF594_MFI_Ratio_LONG <- gather(Tesla_PE_CF594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_PE_CF594_MFI_Ratio_LONG$Fluorochrome <- "PE-CF594"
+
+
+##PE-Cy5
+
+Tesla_PE_Cy5_2to1 <- Tesla_MFI$`PE-Cy5 Peak 2  Median`/Tesla_MFI$`PE-Cy5 Peak 1  Median`
+Tesla_PE_Cy5_3to2 <- Tesla_MFI$`PE-Cy5 Peak 3  Median`/Tesla_MFI$`PE-Cy5 Peak 2  Median`
+Tesla_PE_Cy5_4to3 <- Tesla_MFI$`PE-Cy5 Peak 4  Median`/Tesla_MFI$`PE-Cy5 Peak 3  Median`
+Tesla_PE_Cy5_5to4 <- Tesla_MFI$`PE-Cy5 Peak 5  Median`/Tesla_MFI$`PE-Cy5 Peak 4  Median`
+Tesla_PE_Cy5_6to5 <- Tesla_MFI$`PE-Cy5 Peak 6  Median`/Tesla_MFI$`PE-Cy5 Peak 5  Median`
+Tesla_PE_Cy5_7to6 <- Tesla_MFI$`PE-Cy5 Peak 7  Median`/Tesla_MFI$`PE-Cy5 Peak 6  Median`
+Tesla_PE_Cy5_8to7 <- Tesla_MFI$`PE-Cy5 Peak 8  Median`/Tesla_MFI$`PE-Cy5 Peak 7  Median`
+Tesla_PE_Cy5_4to1 <- Tesla_MFI$`PE-Cy5 Peak 4  Median`/Tesla_MFI$`PE-Cy5 Peak 1  Median`
+Tesla_PE_Cy5_3to1 <- Tesla_MFI$`PE-Cy5 Peak 3  Median`/Tesla_MFI$`PE-Cy5 Peak 1  Median`
+
+Tesla_PE_Cy5_MFI_Ratio <- data.frame(Tesla_PE_Cy5_2to1,Tesla_PE_Cy5_3to2, Tesla_PE_Cy5_4to3, Tesla_PE_Cy5_5to4, Tesla_PE_Cy5_6to5, Tesla_PE_Cy5_7to6, Tesla_PE_Cy5_8to7, Tesla_PE_Cy5_4to1, Tesla_PE_Cy5_3to1)
+
+colnames(Tesla_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PE_Cy5_MFI_Ratio_LONG <- gather(Tesla_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Tesla_PE_Cy7_2to1 <- Tesla_MFI$`PE-Cy7 Peak 2  Median`/Tesla_MFI$`PE-Cy7 Peak 1  Median`
+Tesla_PE_Cy7_3to2 <- Tesla_MFI$`PE-Cy7 Peak 3  Median`/Tesla_MFI$`PE-Cy7 Peak 2  Median`
+Tesla_PE_Cy7_4to3 <- Tesla_MFI$`PE-Cy7 Peak 4  Median`/Tesla_MFI$`PE-Cy7 Peak 3  Median`
+Tesla_PE_Cy7_5to4 <- Tesla_MFI$`PE-Cy7 Peak 5  Median`/Tesla_MFI$`PE-Cy7 Peak 4  Median`
+Tesla_PE_Cy7_6to5 <- Tesla_MFI$`PE-Cy7 Peak 6  Median`/Tesla_MFI$`PE-Cy7 Peak 5  Median`
+Tesla_PE_Cy7_7to6 <- Tesla_MFI$`PE-Cy7 Peak 7  Median`/Tesla_MFI$`PE-Cy7 Peak 6  Median`
+Tesla_PE_Cy7_8to7 <- NA
+Tesla_PE_Cy7_4to1 <- Tesla_MFI$`PE-Cy7 Peak 4  Median`/Tesla_MFI$`PE-Cy7 Peak 1  Median`
+Tesla_PE_Cy7_3to1 <- Tesla_MFI$`PE-Cy7 Peak 3  Median`/Tesla_MFI$`PE-Cy7 Peak 1  Median`
+
+Tesla_PE_Cy7_MFI_Ratio <- data.frame(Tesla_PE_Cy7_2to1,Tesla_PE_Cy7_3to2, Tesla_PE_Cy7_4to3, Tesla_PE_Cy7_5to4, Tesla_PE_Cy7_6to5, Tesla_PE_Cy7_7to6, Tesla_PE_Cy7_8to7, Tesla_PE_Cy7_4to1, Tesla_PE_Cy7_3to1)
+
+colnames(Tesla_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PE_Cy7_MFI_Ratio_LONG <- gather(Tesla_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Tesla_PerCP_Cy5_2to1 <- Tesla_MFI$`PerCP-Cy5 Peak 2  Median`/Tesla_MFI$`PerCP-Cy5 Peak 1  Median`
+Tesla_PerCP_Cy5_3to2 <- Tesla_MFI$`PerCP-Cy5 Peak 3  Median`/Tesla_MFI$`PerCP-Cy5 Peak 2  Median`
+Tesla_PerCP_Cy5_4to3 <- Tesla_MFI$`PerCP-Cy5 Peak 4  Median`/Tesla_MFI$`PerCP-Cy5 Peak 3  Median`
+Tesla_PerCP_Cy5_5to4 <- Tesla_MFI$`PerCP-Cy5 Peak 5  Median`/Tesla_MFI$`PerCP-Cy5 Peak 4  Median`
+Tesla_PerCP_Cy5_6to5 <- Tesla_MFI$`PerCP-Cy5 Peak 6  Median`/Tesla_MFI$`PerCP-Cy5 Peak 5  Median`
+Tesla_PerCP_Cy5_7to6 <- Tesla_MFI$`PerCP-Cy5 Peak 7  Median`/Tesla_MFI$`PerCP-Cy5 Peak 6  Median`
+Tesla_PerCP_Cy5_8to7 <- NA
+Tesla_PerCP_Cy5_4to1 <- Tesla_MFI$`PerCP-Cy5 Peak 4  Median`/Tesla_MFI$`PerCP-Cy5 Peak 1  Median`
+Tesla_PerCP_Cy5_3to1 <- Tesla_MFI$`PerCP-Cy5 Peak 3  Median`/Tesla_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Tesla_PerCP_Cy5_MFI_Ratio <- data.frame(Tesla_PerCP_Cy5_2to1,Tesla_PerCP_Cy5_3to2, Tesla_PerCP_Cy5_4to3, Tesla_PerCP_Cy5_5to4, Tesla_PerCP_Cy5_6to5, Tesla_PerCP_Cy5_7to6, Tesla_PerCP_Cy5_8to7, Tesla_PerCP_Cy5_4to1, Tesla_PerCP_Cy5_3to1)
+
+colnames(Tesla_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Tesla_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PerCP_Cy5_MFI_Ratio_LONG <- gather(Tesla_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Tesla_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Tesla_MFI_Ratios Data Frame
+
+
+Tesla_MFI_Ratios <- rbind(Tesla_Alexa700_MFI_Ratio_LONG, 
+                           Tesla_APC_Cy7_MFI_Ratio_LONG, 
+                           Tesla_APC_MFI_Ratio_LONG, 
+                           Tesla_BUV395_MFI_Ratio_LONG,
+                           Tesla_BUV496_MFI_Ratio_LONG,
+                           Tesla_BUV737_MFI_Ratio_LONG,
+                           Tesla_BV421_MFI_Ratio_LONG,
+                           Tesla_BV510_MFI_Ratio_LONG,
+                           Tesla_BV605_MFI_Ratio_LONG,
+                           Tesla_BV650_MFI_Ratio_LONG,
+                           Tesla_BV711_MFI_Ratio_LONG,
+                           Tesla_BV786_MFI_Ratio_LONG,
+                           Tesla_FITC_MFI_Ratio_LONG,
+                           Tesla_PE_MFI_Ratio_LONG,
+                           Tesla_PE_CF594_MFI_Ratio_LONG,
+                           Tesla_PE_Cy5_MFI_Ratio_LONG,
+                           Tesla_PE_Cy7_MFI_Ratio_LONG,
+                           Tesla_PerCP_Cy5_MFI_Ratio_LONG)
+
+
+
+tesla1 <- Tesla_MFI_Ratios %>% filter(Peak != "3:1" & Peak != "4:1") %>% ggplot(aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Tesla: Ratio of Peaks by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+tesla1
+
+ggsave("tesla1.png", tesla1, width = 10, height = 5, units = c("in"))
+
+
+tesla2 <- ggplot(Tesla_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Tesla: Variation in Peak Separation (06/14 to 06/18)")
+
+ggsave("tesla2.png", tesla2, width = 15, height = 10, units = c("in"))
+
+tesla12 <- Tesla_MFI_Ratios %>% filter(Peak == "3:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Tesla: Peak 3:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+ggsave("tesla12.png", tesla12, width = 10, height = 5, units = c("in"))
+
+tesla13 <- Tesla_MFI_Ratios %>% filter(Peak == "4:1") %>% ggplot(aes(x=Date, y=Ratio)) +
+  geom_point(aes(color=Fluorochrome))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Tesla: Peak 4:1 Ratio") + facet_wrap(~Fluorochrome, nrow=6)
+
+ggsave("tesla13.png", tesla13, width = 10, height = 5, units = c("in"))
+
+```
+
+MFI Difference
+```{r}
+Tesla_MFI_Day2_Change <- Tesla_MFI[2,]-Tesla_MFI[1,]
+Tesla_MFI_Day3_Change <- Tesla_MFI[3,]-Tesla_MFI[1,]
+Tesla_MFI_Day4_Change <- Tesla_MFI[4,]-Tesla_MFI[1,]
+Tesla_MFI_Day5_Change <- Tesla_MFI[5,]-Tesla_MFI[1,]
+
+Tesla_MFI_Difference <- rbind(Tesla_MFI_Day2_Change,Tesla_MFI_Day3_Change,Tesla_MFI_Day4_Change,Tesla_MFI_Day5_Change)
+
+Tesla_MFI_Difference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Tesla_MFI_Difference_LONG <- gather(Tesla_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Tesla_MFI_Difference_LONG <- separate(data = Tesla_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Tesla_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Tesla_MFI_Difference_LONG$Peak))
+
+tesla3 <- ggplot(Tesla_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Tesla: MFI Difference by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+ggsave("tesla3.png", tesla3, width = 10, height = 5, units = c("in"))
+
+tesla4 <-ggplot(Tesla_MFI_Difference_LONG, aes(x=Peak, y=Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=5) + ggtitle('Tesla: Distribution of MFI Difference (06/14 to 06/18)')
+
+ggsave("tesla4.png", tesla4, width = 10, height = 5, units = c("in"))
+
+```
+
+
+PMTV Data
+```{r}
+Tesla_PMTV <- read_csv("Tesla/2021-06-14 Performance Tracking Report.csv")
+
+Tesla_PMTV <- Tesla_PMTV[c((-1:-2)),c(1,7:11)]
+
+colnames(Tesla_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Tesla_PMTV_LONG <- gather(Tesla_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Tesla_PMTV_LONG$Fluorochrome[Tesla_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+
+Tesla_MASTER <- merge(Tesla_MFI_Difference_LONG, Tesla_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+#Tesla_MASTER$Difference <- abs(Tesla_MASTER$Difference)
+#Tesla_MASTER$Voltage <- abs(Tesla_MASTER$Voltage)
+
+Tesla5 = ggplot(Tesla_MASTER, aes(x = Fluorochrome, y = Difference)) + 
+  geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,30), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Peak, nrow=2) + ggtitle("Tesla: PMTV and MFI Difference by Fluorochrome")
+
+Tesla5
+
+ggsave("Tesla5.png", Tesla5, width = 10, height = 5, units = c("in"))
+
+
+
+Tesla10 <- Tesla_MASTER %>% filter(Peak=="Peak 1  ") %>% ggplot(aes(Fluorochrome, Difference)) + geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,50), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9)) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Tesla: Peak 1 PMTV and MFI Difference by Fluorochrome")
+
+
+ggsave("Tesla10.png", Tesla10, width = 10, height = 7, units = c("in"))
+
+
+Tesla6 <- Tesla_MASTER %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(Voltage, Difference)) + geom_point(aes(fill = Fluorochrome), alpha = 0.75, shape = 21) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Tesla: Peak 1 PMTV and MFI Difference by Fluorochrome") + facet_wrap(~Date, nrow=2) 
+
+Tesla6
+
+ggsave("Tesla6.png", Tesla6, width = 10, height = 5, units = c("in"))
+
+#Tesla_MASTER %>% gather(key=c("Date", "Fluorochrome"), value)
+
+Tesla10 <- Tesla_MASTER %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x=Date)) + geom_line(aes(y = Voltage)) + geom_line(aes(y=Difference)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla10
+
+
+
+Tesla11 <- ggplot(Tesla_MASTER, aes(x=Date, y=Difference, group=Fluorochrome)) +
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Tesla: June 14th-18th Peak 1 MFI Data")
+
+
+ggsave("Tesla11.png", Tesla11, width = 10, height = 5, units = c("in"))
+```
+
+
+
+Day to Day Variation
+
+```{r}
+
+Tesla_MFI_Day2D_Change <- Tesla_MFI[2,]-Tesla_MFI[1,]
+Tesla_MFI_Day3D_Change <- Tesla_MFI[3,]-Tesla_MFI[2,]
+Tesla_MFI_Day4D_Change <- Tesla_MFI[4,]-Tesla_MFI[3,]
+Tesla_MFI_Day5D_Change <- Tesla_MFI[5,]-Tesla_MFI[4,]
+
+
+Tesla_MFI_DifferenceDD <- rbind(Tesla_MFI_Day2D_Change,Tesla_MFI_Day3D_Change,Tesla_MFI_Day4D_Change,Tesla_MFI_Day5D_Change)
+
+Tesla_MFI_DifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Tesla_MFI_DifferenceDD_LONG <- gather(Tesla_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Tesla_MFI_DifferenceDD_LONG <- separate(data = Tesla_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Tesla_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Tesla_MFI_Difference_LONG$Peak))
+
+Tesla13 <- ggplot(Tesla_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Tesla: MFI Daily Difference by Fluorochrome')
+
+ggsave("Tesla13.png", Tesla13, width = 10, height = 5, units = c("in"))
+
+
+
+```
+
+```{r}
+Tesla_MASTERDD <- merge(Tesla_MFI_DifferenceDD_LONG, Tesla_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+Tesla14 <- Tesla_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla14
+
+ggsave("Tesla14.png", Tesla14, width = 10, height = 5, units = c("in"))
+
+
+Tesla15 <- Tesla_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla15
+
+ggsave("Tesla15.png", Tesla15, width = 10, height = 5, units = c("in"))
+
+
+Tesla16 <- Tesla_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla16
+
+ggsave("Tesla16.png", Tesla16, width = 10, height = 5, units = c("in"))
+
+
+Tesla17 <- Tesla_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla17
+
+ggsave("Tesla17.png", Tesla17, width = 10, height = 5, units = c("in"))
+
+Tesla18 <- Tesla_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla18
+
+ggsave("Tesla18.png", Tesla18, width = 10, height = 5, units = c("in"))
+
+Tesla19 <- Tesla_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla19
+
+ggsave("Tesla19.png", Tesla19, width = 10, height = 5, units = c("in"))
+
+
+
+Tesla20 <- Tesla_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla20
+
+ggsave("Tesla20.png", Tesla20, width = 10, height = 5, units = c("in"))
+
+Tesla21 <- Tesla_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla21
+
+ggsave("Tesla21.png", Tesla21, width = 10, height = 5, units = c("in"))
+
+
+Tesla22 <- Tesla_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Tesla22
+
+ggsave("Tesla22.png", Tesla22, width = 10, height = 5, units = c("in"))
+
+
+Tesla23 <- Tesla_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Tesla23.png", Tesla23, width = 7, height = 10, units = c("in"))
+
+
+Tesla24 <- Tesla_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Tesla24.png", Tesla24, width = 7, height = 10, units = c("in"))
+
+Tesla25 <- Tesla_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Tesla: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Tesla25.png", Tesla25, width = 7, height = 10, units = c("in"))
+```
+
+
+```{r}
+#Daily Percent Change
+Tesla_MFI_Day2D_PercentChange <- ((Tesla_MFI[2,]-Tesla_MFI[1,])/Tesla_MFI[1,]) * 100
+Tesla_MFI_Day3D_PercentChange <- ((Tesla_MFI[3,]-Tesla_MFI[2,])/Tesla_MFI[2,]) * 100
+Tesla_MFI_Day4D_PercentChange <- ((Tesla_MFI[4,]-Tesla_MFI[3,])/Tesla_MFI[3,]) * 100
+Tesla_MFI_Day5D_PercentChange <- ((Tesla_MFI[5,]-Tesla_MFI[4,])/Tesla_MFI[4,]) * 100
+
+
+Tesla_MFI_PercentDifferenceDD <- rbind(Tesla_MFI_Day2D_PercentChange,Tesla_MFI_Day3D_PercentChange,Tesla_MFI_Day4D_PercentChange,Tesla_MFI_Day5D_PercentChange)
+
+Tesla_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Tesla_MFI_PercentDifferenceDD_LONG <- gather(Tesla_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Tesla_MFI_PercentDifferenceDD_LONG <- separate(data = Tesla_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Tesla_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Tesla_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Tesla7<- Tesla_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Tesla: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Tesla7.png", Tesla7, width = 10, height = 5, units = c("in"))
+
+
+Tesla8<- Tesla_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Tesla: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Tesla8.png", Tesla8, width = 10, height = 5, units = c("in"))
+
+
+```
+
+```{r}
+
+Tesla_MASTERDD$Instrument <- "Tesla"
+```
+
+
+CST vs Beads Voltage
+
+```{r}
+GadgetBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 1)
+GadgetBeadVoltage <- GadgetBeadVoltage[-c(1:4), -c(2:8)]
+colnames(GadgetBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+GadgetBeadVoltage_LONG <- gather(GadgetBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+GadgetBeadVoltage_LONG$Instrument <- "Gadget"
+
+PennyBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 2)
+PennyBeadVoltage <- PennyBeadVoltage[-c(1:4), -c(2:8)]
+colnames(PennyBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+PennyBeadVoltage_LONG <- gather(PennyBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+
+PennyBeadVoltage_LONG$Instrument <- "Penny"
+
+
+WallaceBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 3)
+WallaceBeadVoltage <- WallaceBeadVoltage[-c(1:4), -c(2:8)]
+colnames(WallaceBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+WallaceBeadVoltage_LONG <- gather(WallaceBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+
+WallaceBeadVoltage_LONG$Instrument <- "Wallace"
+
+
+GromitBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 4)
+GromitBeadVoltage <- GromitBeadVoltage[-c(1:4), -c(2:8)]
+colnames(GromitBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+GromitBeadVoltage_LONG <- gather(GromitBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+
+GromitBeadVoltage_LONG$Instrument <- "Gromit"
+
+
+RosalindBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 5)
+RosalindBeadVoltage <- RosalindBeadVoltage[-c(1:4), -c(2:8)]
+colnames(RosalindBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+RosalindBeadVoltage_LONG <- gather(RosalindBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+
+RosalindBeadVoltage_LONG$Instrument <- "Rosalind"
+
+
+TeslaBeadVoltage <- read_excel("Voltage Data.xlsx", sheet = 6)
+TeslaBeadVoltage <- TeslaBeadVoltage[-c(1:4), -c(2:8)]
+colnames(TeslaBeadVoltage) <- c("Fluorochrome", "06/15", "06/16", "06/17", "06/18")
+TeslaBeadVoltage_LONG <- gather(TeslaBeadVoltage, Date, Voltage, "06/15":"06/18", factor_key=TRUE)
+
+
+TeslaBeadVoltage_LONG$Instrument <- "Tesla"
+
+
+BeadVoltage <- rbind(GadgetBeadVoltage_LONG, PennyBeadVoltage_LONG, WallaceBeadVoltage_LONG, GromitBeadVoltage_LONG, RosalindBeadVoltage_LONG, TeslaBeadVoltage_LONG)
+
+BV <- BeadVoltage %>% ggplot(aes(x= Fluorochrome, y=Voltage)) + geom_boxplot() + facet_wrap(~Instrument, nrow=2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of Daily Voltage Changes from 8 Peak Beads")
+
+ggsave("BV.png", BV, width = 10, height = 8, units = c("in"))
+
+```
+
+
+```{r}
+Penny_PMTV_LONG$Instrument <- "Penny"
+Tesla_PMTV_LONG$Instrument <- "Tesla"
+Rosalind_PMTV_LONG$Instrument <- "Rosalind"
+Wallace_PMTV_LONG$Instrument <- "Wallace"
+Gromit_PMTV_LONG$Instrument <- "Gromit"
+Gadget_PMTV_LONG$Instrument <- "Gadget"
+
+PMTVoltage <- rbind(Penny_PMTV_LONG, Tesla_PMTV_LONG, Rosalind_PMTV_LONG, Wallace_PMTV_LONG, Gromit_PMTV_LONG,Gadget_PMTV_LONG )
+
+
+PV <- PMTVoltage %>% ggplot(aes(x= Fluorochrome, y=Voltage)) + geom_boxplot() + facet_wrap(~Instrument, nrow=2) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of Daily Voltage Changes from CST")
+
+ggsave("PV.png", PV, width = 10, height = 8, units = c("in"))
+
+
+BeadVoltage$Method <- "8 Peak Bead"
+PMTVoltage$Method <- "CST"
+
+```
+
+
+```{r}
+
+Tesla_RCV <- Tesla %>% select(contains("Robust"))
+
+Tesla_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Tesla_RCV_LONG <- gather(Tesla_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 7  Robust CV", factor_key=TRUE)
+
+Tesla_RCV_LONG <- separate(data = Tesla_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Tesla_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Tesla_RCV_LONG$Peak))
+
+
+Tesla7 <- ggplot(Tesla_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Tesla: Distribution of RCV (06/14 to 06/18)') 
+
+Tesla8 <- Tesla7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("TeslaRCV1.png", Tesla7, width = 10, height = 5, units = c("in"))
+
+ggsave("TeslaRCV2.png", Tesla8, width = 10, height = 5, units = c("in"))
+```

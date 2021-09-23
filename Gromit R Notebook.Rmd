@@ -1,0 +1,1230 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+GROMIT
+
+```{r, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(readr)
+library(plotly)
+library(grid)
+library(reshape2)
+
+#library(extrafont)
+#font_import(pattern = "lmroman")
+#loadfonts()
+#par(family = "LM Roman 10")
+setwd("~/Desktop")
+```
+
+```{r}
+Gromit_FlowJo_table <- read_csv("~/Desktop/Gromit FlowJo table 2.csv")
+
+Gromit <- as.data.frame(Gromit_FlowJo_table)
+Gromit <- Gromit %>% select(-contains("Freq"))
+Gromit <- Gromit[-c(2,7:8),]
+Gromit <- Gromit[,-1]
+
+Gromit[,1:384] <- sapply(Gromit[, 1:384], as.numeric)
+
+
+Gromit_MFI <- Gromit %>% select(contains("Median"))
+
+
+Gromit_BUV395 <- Gromit %>% select(contains("BUV395"))
+Gromit_BUV395 <- Gromit_BUV395 %>%  select(contains("Median"))
+Gromit_BUV395$`BUV395 Peak 1  Median` <- Gromit_BUV395$`BUV395 Peak 3  Median`
+
+Gromit_MFI$`BUV395 Peak 1  Median` <- Gromit_BUV395$`BUV395 Peak 1  Median`
+
+
+
+Gromit_MFI_Peak1 <- Gromit_MFI %>% select(contains("Peak 1"))
+Gromit_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Gromit_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "BUV395" , "Date")
+
+Gromit_MFI_Peak1 <- Gromit_MFI_Peak1[,c(19,1:18)]
+
+
+Gromit_MFI_Peak1_Long <- gather(Gromit_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'BUV395', factor_key=TRUE)
+
+Gromit_MFI_Peak4 <- Gromit_MFI %>% select(contains("Peak 4"))
+Gromit_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Gromit_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Gromit_MFI_Peak4 <- Gromit_MFI_Peak4[,c(19,1:18)]
+
+
+Gromit_MFI_Peak4_Long <- gather(Gromit_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Gromit_MFI_Peak4_Long$Difference <- Gromit_MFI_Peak1_Long$MFI - Gromit_MFI_Peak4_Long$MFI
+
+Gromit_MFI_Peak4_Long$'Percent Difference' <- ((Gromit_MFI_Peak1_Long$MFI - Gromit_MFI_Peak4_Long$MFI) / Gromit_MFI_Peak4_Long$MFI) * 100
+
+Gromit_MFI_Peak1_Plot <- ggplot(Gromit_MFI_Peak1, aes(x=Date, y=Alexa700)) +
+  geom_line(linetype="dashed", color="blue", size=1.2)+
+  geom_point(color="red", size=3)
+
+Gromit_MFI_Peak1_Plot
+
+
+Gromit_MFI_Peak1_Long <- gather(Gromit_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+
+gromit01 <- ggplot(Gromit_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Gromit: June 14th-18th Peak 1 MFI Data") + scale_y_continuous(breaks=seq(96000,104000,1000))
+
+
+gromit01 <- gromit01 + ylim(88000, 105000)
+
+ggsave("gromit01.png", gromit01, width = 10, height = 5, units = c("in"))
+
+Gromit4 <- ggplot(Gromit_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Gromit: June 14th-18th Peak 4 MFI Data")
+
+
+ggsave("Gromit4.png", Gromit4, width = 10, height = 5, units = c("in"))
+
+
+
+#Gadget_MFI_Ratios
+
+##Alexa700
+Gromit_Alexa700_2to1 <- Gromit_MFI$`Alexa700 Peak 2  Median`/Gromit_MFI$`Alexa700 Peak 1  Median`
+Gromit_Alexa700_3to2 <- Gromit_MFI$`Alexa700 Peak 3  Median`/Gromit_MFI$`Alexa700 Peak 2  Median`
+Gromit_Alexa700_4to3 <- Gromit_MFI$`Alexa700 Peak 4  Median`/Gromit_MFI$`Alexa700 Peak 3  Median`
+Gromit_Alexa700_5to4 <- Gromit_MFI$`Alexa700 Peak 5  Median`/Gromit_MFI$`Alexa700 Peak 4  Median`
+Gromit_Alexa700_6to5 <- Gromit_MFI$`Alexa700 Peak 6  Median`/Gromit_MFI$`Alexa700 Peak 5  Median`
+Gromit_Alexa700_7to6 <- Gromit_MFI$`Alexa700 Peak 7  Median`/Gromit_MFI$`Alexa700 Peak 6  Median`
+Gromit_Alexa700_8to7 <- Gromit_MFI$`Alexa700 Peak 8  Median`/Gromit_MFI$`Alexa700 Peak 7  Median`
+Gromit_Alexa700_4to1 <- Gromit_MFI$`Alexa700 Peak 4  Median`/Gromit_MFI$`Alexa700 Peak 1  Median`
+Gromit_Alexa700_3to1 <- Gromit_MFI$`Alexa700 Peak 3  Median`/Gromit_MFI$`Alexa700 Peak 1  Median`
+
+
+Gromit_Alexa700_MFI_Ratio <- data.frame(Gromit_Alexa700_2to1,Gromit_Alexa700_3to2, Gromit_Alexa700_4to3, Gromit_Alexa700_5to4, Gromit_Alexa700_6to5, Gromit_Alexa700_7to6, Gromit_Alexa700_8to7, Gromit_Alexa700_4to1, Gromit_Alexa700_3to1)
+
+colnames(Gromit_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_Alexa700_MFI_Ratio_LONG <- gather(Gromit_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Gromit_APC_2to1 <- Gromit_MFI$`APC Peak 2  Median`/Gromit_MFI$`APC Peak 1  Median`
+Gromit_APC_3to2 <- Gromit_MFI$`APC Peak 3  Median`/Gromit_MFI$`APC Peak 2  Median`
+Gromit_APC_4to3 <- Gromit_MFI$`APC Peak 4  Median`/Gromit_MFI$`APC Peak 3  Median`
+Gromit_APC_5to4 <- Gromit_MFI$`APC Peak 5  Median`/Gromit_MFI$`APC Peak 4  Median`
+Gromit_APC_6to5 <- Gromit_MFI$`APC Peak 6  Median`/Gromit_MFI$`APC Peak 5  Median`
+Gromit_APC_7to6 <- Gromit_MFI$`APC Peak 7  Median`/Gromit_MFI$`APC Peak 6  Median`
+Gromit_APC_8to7 <- Gromit_MFI$`APC Peak 8  Median`/Gromit_MFI$`APC Peak 7  Median`
+Gromit_APC_4to1 <- Gromit_MFI$`APC Peak 4  Median`/Gromit_MFI$`APC Peak 1  Median`
+Gromit_APC_3to1 <- Gromit_MFI$`APC Peak 3  Median`/Gromit_MFI$`APC Peak 1  Median`
+
+Gromit_APC_MFI_Ratio <- data.frame(Gromit_APC_2to1,Gromit_APC_3to2, Gromit_APC_4to3, Gromit_APC_5to4, Gromit_APC_6to5, Gromit_APC_7to6, Gromit_APC_8to7, Gromit_APC_4to1, Gromit_APC_3to1)
+
+colnames(Gromit_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_APC_MFI_Ratio_LONG <- gather(Gromit_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Gromit_APC_Cy7_2to1 <- Gromit_MFI$`APC-Cy7 Peak 2  Median`/Gromit_MFI$`APC-Cy7 Peak 1  Median`
+Gromit_APC_Cy7_3to2 <- Gromit_MFI$`APC-Cy7 Peak 3  Median`/Gromit_MFI$`APC-Cy7 Peak 2  Median`
+Gromit_APC_Cy7_4to3 <- Gromit_MFI$`APC-Cy7 Peak 4  Median`/Gromit_MFI$`APC-Cy7 Peak 3  Median`
+Gromit_APC_Cy7_5to4 <- Gromit_MFI$`APC-Cy7 Peak 5  Median`/Gromit_MFI$`APC-Cy7 Peak 4  Median`
+Gromit_APC_Cy7_6to5 <- Gromit_MFI$`APC-Cy7 Peak 6  Median`/Gromit_MFI$`APC-Cy7 Peak 5  Median`
+Gromit_APC_Cy7_7to6 <- Gromit_MFI$`APC-Cy7 Peak 7  Median`/Gromit_MFI$`APC-Cy7 Peak 6  Median`
+Gromit_APC_Cy7_8to7 <- NA
+Gromit_APC_Cy7_4to1 <- Gromit_MFI$`APC-Cy7 Peak 4  Median`/Gromit_MFI$`APC-Cy7 Peak 1  Median`
+Gromit_APC_Cy7_3to1 <- Gromit_MFI$`APC-Cy7 Peak 3  Median`/Gromit_MFI$`APC-Cy7 Peak 1  Median`
+
+Gromit_APC_Cy7_MFI_Ratio <- data.frame(Gromit_APC_Cy7_2to1,Gromit_APC_Cy7_3to2, Gromit_APC_Cy7_4to3, Gromit_APC_Cy7_5to4, Gromit_APC_Cy7_6to5, Gromit_APC_Cy7_7to6, Gromit_APC_Cy7_8to7, Gromit_APC_Cy7_4to1, Gromit_APC_Cy7_3to1)
+
+colnames(Gromit_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_APC_Cy7_MFI_Ratio_LONG <- gather(Gromit_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV395
+
+Gromit_BUV395_2to1 <- NA
+Gromit_BUV395_3to2 <- Gromit_MFI$`BUV395 Peak 3  Median`/Gromit_MFI$`BUV395 Peak 2  Median`
+Gromit_BUV395_4to3 <- Gromit_MFI$`BUV395 Peak 4  Median`/Gromit_MFI$`BUV395 Peak 3  Median`
+Gromit_BUV395_5to4 <- Gromit_MFI$`BUV395 Peak 5  Median`/Gromit_MFI$`BUV395 Peak 4  Median`
+Gromit_BUV395_6to5 <- Gromit_MFI$`BUV395 Peak 6  Median`/Gromit_MFI$`BUV395 Peak 5  Median`
+Gromit_BUV395_7to6 <- Gromit_MFI$`BUV395 Peak 7  Median`/Gromit_MFI$`BUV395 Peak 6  Median`
+Gromit_BUV395_8to7 <- Gromit_MFI$`BUV395 Peak 8  Median`/Gromit_MFI$`BUV395 Peak 7  Median`
+Gromit_BUV395_4to1 <- NA
+Gromit_BUV395_3to1 <- NA
+
+Gromit_BUV395_MFI_Ratio <- data.frame(Gromit_BUV395_2to1,Gromit_BUV395_3to2, Gromit_BUV395_4to3, Gromit_BUV395_5to4, Gromit_BUV395_6to5, Gromit_BUV395_7to6, Gromit_BUV395_8to7, Gromit_BUV395_4to1, Gromit_BUV395_3to1)
+
+colnames(Gromit_BUV395_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BUV395_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BUV395_MFI_Ratio_LONG <- gather(Gromit_BUV395_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BUV395_MFI_Ratio_LONG$Fluorochrome <- "BUV395"
+
+##BUV496
+
+Gromit_BUV496_2to1 <- Gromit_MFI$`BUV496 Peak 2  Median`/Gromit_MFI$`BUV496 Peak 1  Median`
+Gromit_BUV496_3to2 <- Gromit_MFI$`BUV496 Peak 3  Median`/Gromit_MFI$`BUV496 Peak 2  Median`
+Gromit_BUV496_4to3 <- Gromit_MFI$`BUV496 Peak 4  Median`/Gromit_MFI$`BUV496 Peak 3  Median`
+Gromit_BUV496_5to4 <- Gromit_MFI$`BUV496 Peak 5  Median`/Gromit_MFI$`BUV496 Peak 4  Median`
+Gromit_BUV496_6to5 <- Gromit_MFI$`BUV496 Peak 6  Median`/Gromit_MFI$`BUV496 Peak 5  Median`
+Gromit_BUV496_7to6 <- Gromit_MFI$`BUV496 Peak 7  Median`/Gromit_MFI$`BUV496 Peak 6  Median`
+Gromit_BUV496_8to7 <- Gromit_MFI$`BUV496 Peak 8  Median`/Gromit_MFI$`BUV496 Peak 7  Median`
+Gromit_BUV496_4to1 <- Gromit_MFI$`BUV496 Peak 4  Median`/Gromit_MFI$`BUV496 Peak 1  Median`
+Gromit_BUV496_3to1 <- Gromit_MFI$`BUV496 Peak 3  Median`/Gromit_MFI$`BUV496 Peak 1  Median`
+
+Gromit_BUV496_MFI_Ratio <- data.frame(Gromit_BUV496_2to1,Gromit_BUV496_3to2, Gromit_BUV496_4to3, Gromit_BUV496_5to4, Gromit_BUV496_6to5, Gromit_BUV496_7to6, Gromit_BUV496_8to7, Gromit_BUV496_4to1, Gromit_BUV496_3to1)
+
+colnames(Gromit_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BUV496_MFI_Ratio_LONG <- gather(Gromit_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Gromit_BUV737_2to1 <- Gromit_MFI$`BUV737 Peak 2  Median`/Gromit_MFI$`BUV737 Peak 1  Median`
+Gromit_BUV737_3to2 <- Gromit_MFI$`BUV737 Peak 3  Median`/Gromit_MFI$`BUV737 Peak 2  Median`
+Gromit_BUV737_4to3 <- Gromit_MFI$`BUV737 Peak 4  Median`/Gromit_MFI$`BUV737 Peak 3  Median`
+Gromit_BUV737_5to4 <- Gromit_MFI$`BUV737 Peak 5  Median`/Gromit_MFI$`BUV737 Peak 4  Median`
+Gromit_BUV737_6to5 <- NA
+Gromit_BUV737_7to6 <- NA
+Gromit_BUV737_8to7 <- NA
+Gromit_BUV737_4to1 <- Gromit_MFI$`BUV737 Peak 4  Median`/Gromit_MFI$`BUV737 Peak 1  Median`
+Gromit_BUV737_3to1 <- Gromit_MFI$`BUV737 Peak 3  Median`/Gromit_MFI$`BUV737 Peak 1  Median`
+
+Gromit_BUV737_MFI_Ratio <- data.frame(Gromit_BUV737_2to1,Gromit_BUV737_3to2, Gromit_BUV737_4to3, Gromit_BUV737_5to4, Gromit_BUV737_6to5, Gromit_BUV737_7to6, Gromit_BUV737_8to7, Gromit_BUV737_4to1, Gromit_BUV737_3to1)
+
+colnames(Gromit_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BUV737_MFI_Ratio_LONG <- gather(Gromit_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Gromit_BV421_2to1 <- Gromit_MFI$`BV421 Peak 2  Median`/Gromit_MFI$`BV421 Peak 1  Median`
+Gromit_BV421_3to2 <- Gromit_MFI$`BV421 Peak 3  Median`/Gromit_MFI$`BV421 Peak 2  Median`
+Gromit_BV421_4to3 <- Gromit_MFI$`BV421 Peak 4  Median`/Gromit_MFI$`BV421 Peak 3  Median`
+Gromit_BV421_5to4 <- Gromit_MFI$`BV421 Peak 5  Median`/Gromit_MFI$`BV421 Peak 4  Median`
+Gromit_BV421_6to5 <- Gromit_MFI$`BV421 Peak 6  Median`/Gromit_MFI$`BV421 Peak 5  Median`
+Gromit_BV421_7to6 <- Gromit_MFI$`BV421 Peak 7  Median`/Gromit_MFI$`BV421 Peak 6  Median`
+Gromit_BV421_8to7 <- Gromit_MFI$`BV421 Peak 8  Median`/Gromit_MFI$`BV421 Peak 7  Median`
+Gromit_BV421_4to1 <- Gromit_MFI$`BV421 Peak 4  Median`/Gromit_MFI$`BV421 Peak 1  Median`
+Gromit_BV421_3to1 <- Gromit_MFI$`BV421 Peak 3  Median`/Gromit_MFI$`BV421 Peak 1  Median`
+
+Gromit_BV421_MFI_Ratio <- data.frame(Gromit_BV421_2to1,Gromit_BV421_3to2, Gromit_BV421_4to3, Gromit_BV421_5to4, Gromit_BV421_6to5, Gromit_BV421_7to6, Gromit_BV421_8to7, Gromit_BV421_4to1, Gromit_BV421_3to1)
+
+colnames(Gromit_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV421_MFI_Ratio_LONG <- gather(Gromit_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Gromit_BV510_2to1 <- Gromit_MFI$`BV510 Peak 2  Median`/Gromit_MFI$`BV510 Peak 1  Median`
+Gromit_BV510_3to2 <- Gromit_MFI$`BV510 Peak 3  Median`/Gromit_MFI$`BV510 Peak 2  Median`
+Gromit_BV510_4to3 <- Gromit_MFI$`BV510 Peak 4  Median`/Gromit_MFI$`BV510 Peak 3  Median`
+Gromit_BV510_5to4 <- Gromit_MFI$`BV510 Peak 5  Median`/Gromit_MFI$`BV510 Peak 4  Median`
+Gromit_BV510_6to5 <- Gromit_MFI$`BV510 Peak 6  Median`/Gromit_MFI$`BV510 Peak 5  Median`
+Gromit_BV510_7to6 <- Gromit_MFI$`BV510 Peak 7  Median`/Gromit_MFI$`BV510 Peak 6  Median`
+Gromit_BV510_8to7 <- Gromit_MFI$`BV510 Peak 8  Median`/Gromit_MFI$`BV510 Peak 7  Median`
+Gromit_BV510_4to1 <- Gromit_MFI$`BV510 Peak 4  Median`/Gromit_MFI$`BV510 Peak 1  Median`
+Gromit_BV510_3to1 <- Gromit_MFI$`BV510 Peak 3  Median`/Gromit_MFI$`BV510 Peak 1  Median`
+
+
+Gromit_BV510_MFI_Ratio <- data.frame(Gromit_BV510_2to1,Gromit_BV510_3to2, Gromit_BV510_4to3, Gromit_BV510_5to4, Gromit_BV510_6to5, Gromit_BV510_7to6, Gromit_BV510_8to7, Gromit_BV510_4to1, Gromit_BV510_3to1)
+
+colnames(Gromit_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV510_MFI_Ratio_LONG <- gather(Gromit_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Gromit_BV605_2to1 <- Gromit_MFI$`BV605 Peak 2  Median`/Gromit_MFI$`BV605 Peak 1  Median`
+Gromit_BV605_3to2 <- Gromit_MFI$`BV605 Peak 3  Median`/Gromit_MFI$`BV605 Peak 2  Median`
+Gromit_BV605_4to3 <- Gromit_MFI$`BV605 Peak 4  Median`/Gromit_MFI$`BV605 Peak 3  Median`
+Gromit_BV605_5to4 <- Gromit_MFI$`BV605 Peak 5  Median`/Gromit_MFI$`BV605 Peak 4  Median`
+Gromit_BV605_6to5 <- Gromit_MFI$`BV605 Peak 6  Median`/Gromit_MFI$`BV605 Peak 5  Median`
+Gromit_BV605_7to6 <- NA
+Gromit_BV605_8to7 <- NA
+Gromit_BV605_4to1 <- Gromit_MFI$`BV605 Peak 4  Median`/Gromit_MFI$`BV605 Peak 1  Median`
+Gromit_BV605_3to1 <- Gromit_MFI$`BV605 Peak 3  Median`/Gromit_MFI$`BV605 Peak 1  Median`
+
+
+Gromit_BV605_MFI_Ratio <- data.frame(Gromit_BV605_2to1,Gromit_BV605_3to2, Gromit_BV605_4to3, Gromit_BV605_5to4, Gromit_BV605_6to5, Gromit_BV605_7to6, Gromit_BV605_8to7, Gromit_BV605_4to1, Gromit_BV605_3to1)
+
+colnames(Gromit_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV605_MFI_Ratio_LONG <- gather(Gromit_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Gromit_BV650_2to1 <- Gromit_MFI$`BV650 Peak 2  Median`/Gromit_MFI$`BV650 Peak 1  Median`
+Gromit_BV650_3to2 <- Gromit_MFI$`BV650 Peak 3  Median`/Gromit_MFI$`BV650 Peak 2  Median`
+Gromit_BV650_4to3 <- Gromit_MFI$`BV650 Peak 4  Median`/Gromit_MFI$`BV650 Peak 3  Median`
+Gromit_BV650_5to4 <- Gromit_MFI$`BV650 Peak 5  Median`/Gromit_MFI$`BV650 Peak 4  Median`
+Gromit_BV650_6to5 <- NA
+Gromit_BV650_7to6 <- NA
+Gromit_BV650_8to7 <- NA
+Gromit_BV650_4to1 <- Gromit_MFI$`BV650 Peak 4  Median`/Gromit_MFI$`BV650 Peak 1  Median`
+Gromit_BV650_3to1 <- Gromit_MFI$`BV650 Peak 3  Median`/Gromit_MFI$`BV650 Peak 1  Median`
+
+
+Gromit_BV650_MFI_Ratio <- data.frame(Gromit_BV650_2to1,Gromit_BV650_3to2, Gromit_BV650_4to3, Gromit_BV650_5to4, Gromit_BV650_6to5, Gromit_BV650_7to6, Gromit_BV650_8to7, Gromit_BV650_4to1, Gromit_BV650_3to1)
+
+colnames(Gromit_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV650_MFI_Ratio_LONG <- gather(Gromit_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Gromit_BV711_2to1 <- Gromit_MFI$`BV711 Peak 2  Median`/Gromit_MFI$`BV711 Peak 1  Median`
+Gromit_BV711_3to2 <- Gromit_MFI$`BV711 Peak 3  Median`/Gromit_MFI$`BV711 Peak 2  Median`
+Gromit_BV711_4to3 <- Gromit_MFI$`BV711 Peak 4  Median`/Gromit_MFI$`BV711 Peak 3  Median`
+Gromit_BV711_5to4 <- Gromit_MFI$`BV711 Peak 5  Median`/Gromit_MFI$`BV711 Peak 4  Median`
+Gromit_BV711_6to5 <- NA
+Gromit_BV711_7to6 <- NA
+Gromit_BV711_8to7 <- NA
+Gromit_BV711_4to1 <- Gromit_MFI$`BV711 Peak 4  Median`/Gromit_MFI$`BV711 Peak 1  Median`
+Gromit_BV711_3to1 <- Gromit_MFI$`BV711 Peak 3  Median`/Gromit_MFI$`BV711 Peak 1  Median`
+
+
+Gromit_BV711_MFI_Ratio <- data.frame(Gromit_BV711_2to1,Gromit_BV711_3to2, Gromit_BV711_4to3, Gromit_BV711_5to4, Gromit_BV711_6to5, Gromit_BV711_7to6, Gromit_BV711_8to7, Gromit_BV711_4to1, Gromit_BV711_3to1)
+
+colnames(Gromit_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV711_MFI_Ratio_LONG <- gather(Gromit_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Gromit_BV786_2to1 <- Gromit_MFI$`BV786 Peak 2  Median`/Gromit_MFI$`BV786 Peak 1  Median`
+Gromit_BV786_3to2 <- Gromit_MFI$`BV786 Peak 3  Median`/Gromit_MFI$`BV786 Peak 2  Median`
+Gromit_BV786_4to3 <- Gromit_MFI$`BV786 Peak 4  Median`/Gromit_MFI$`BV786 Peak 3  Median`
+Gromit_BV786_5to4 <- NA
+Gromit_BV786_6to5 <- NA
+Gromit_BV786_7to6 <- NA
+Gromit_BV786_8to7 <- NA
+Gromit_BV786_4to1 <- Gromit_MFI$`BV786 Peak 4  Median`/Gromit_MFI$`BV786 Peak 1  Median`
+Gromit_BV786_3to1 <- Gromit_MFI$`BV786 Peak 3  Median`/Gromit_MFI$`BV786 Peak 1  Median`
+
+
+Gromit_BV786_MFI_Ratio <- data.frame(Gromit_BV786_2to1,Gromit_BV786_3to2, Gromit_BV786_4to3, Gromit_BV786_5to4, Gromit_BV786_6to5, Gromit_BV786_7to6, Gromit_BV786_8to7, Gromit_BV786_4to1, Gromit_BV786_3to1)
+
+colnames(Gromit_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_BV786_MFI_Ratio_LONG <- gather(Gromit_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Gromit_FITC_2to1 <- Gromit_MFI$`FITC Peak 2  Median`/Gromit_MFI$`FITC Peak 1  Median`
+Gromit_FITC_3to2 <- Gromit_MFI$`FITC Peak 3  Median`/Gromit_MFI$`FITC Peak 2  Median`
+Gromit_FITC_4to3 <- Gromit_MFI$`FITC Peak 4  Median`/Gromit_MFI$`FITC Peak 3  Median`
+Gromit_FITC_5to4 <- Gromit_MFI$`FITC Peak 5  Median`/Gromit_MFI$`FITC Peak 4  Median`
+Gromit_FITC_6to5 <- Gromit_MFI$`FITC Peak 6  Median`/Gromit_MFI$`FITC Peak 5  Median`
+Gromit_FITC_7to6 <- Gromit_MFI$`FITC Peak 7  Median`/Gromit_MFI$`FITC Peak 6  Median`
+Gromit_FITC_8to7 <- Gromit_MFI$`FITC Peak 8  Median`/Gromit_MFI$`FITC Peak 7  Median`
+Gromit_FITC_4to1 <- Gromit_MFI$`FITC Peak 4  Median`/Gromit_MFI$`FITC Peak 1  Median`
+Gromit_FITC_3to1 <- Gromit_MFI$`FITC Peak 3  Median`/Gromit_MFI$`FITC Peak 1  Median`
+
+
+Gromit_FITC_MFI_Ratio <- data.frame(Gromit_FITC_2to1,Gromit_FITC_3to2, Gromit_FITC_4to3, Gromit_FITC_5to4, Gromit_FITC_6to5, Gromit_FITC_7to6, Gromit_FITC_8to7, Gromit_FITC_4to1, Gromit_FITC_3to1)
+
+colnames(Gromit_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_FITC_MFI_Ratio_LONG <- gather(Gromit_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Gromit_PE_2to1 <- Gromit_MFI$`PE Peak 2  Median`/Gromit_MFI$`PE Peak 1  Median`
+Gromit_PE_3to2 <- Gromit_MFI$`PE Peak 3  Median`/Gromit_MFI$`PE Peak 2  Median`
+Gromit_PE_4to3 <- Gromit_MFI$`PE Peak 4  Median`/Gromit_MFI$`PE Peak 3  Median`
+Gromit_PE_5to4 <- Gromit_MFI$`PE Peak 5  Median`/Gromit_MFI$`PE Peak 4  Median`
+Gromit_PE_6to5 <- Gromit_MFI$`PE Peak 6  Median`/Gromit_MFI$`PE Peak 5  Median`
+Gromit_PE_7to6 <- Gromit_MFI$`PE Peak 7  Median`/Gromit_MFI$`PE Peak 6  Median`
+Gromit_PE_8to7 <- Gromit_MFI$`PE Peak 8  Median`/Gromit_MFI$`PE Peak 7  Median`
+Gromit_PE_4to1 <- Gromit_MFI$`PE Peak 4  Median`/Gromit_MFI$`PE Peak 1  Median`
+Gromit_PE_3to1 <- Gromit_MFI$`PE Peak 3  Median`/Gromit_MFI$`PE Peak 1  Median`
+
+
+Gromit_PE_MFI_Ratio <- data.frame(Gromit_PE_2to1,Gromit_PE_3to2, Gromit_PE_4to3, Gromit_PE_5to4, Gromit_PE_6to5, Gromit_PE_7to6, Gromit_PE_8to7, Gromit_PE_4to1, Gromit_PE_3to1)
+
+colnames(Gromit_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_PE_MFI_Ratio_LONG <- gather(Gromit_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Gromit_PE_CF594_2to1 <- Gromit_MFI$`PE-CF594 Peak 2  Median`/Gromit_MFI$`PE-CF594 Peak 1  Median`
+Gromit_PE_CF594_3to2 <- Gromit_MFI$`PE-CF594 Peak 3  Median`/Gromit_MFI$`PE-CF594 Peak 2  Median`
+Gromit_PE_CF594_4to3 <- Gromit_MFI$`PE-CF594 Peak 4  Median`/Gromit_MFI$`PE-CF594 Peak 3  Median`
+Gromit_PE_CF594_5to4 <- Gromit_MFI$`PE-CF594 Peak 5  Median`/Gromit_MFI$`PE-CF594 Peak 4  Median`
+Gromit_PE_CF594_6to5 <- Gromit_MFI$`PE-CF594 Peak 6  Median`/Gromit_MFI$`PE-CF594 Peak 5  Median`
+Gromit_PE_CF594_7to6 <- Gromit_MFI$`PE-CF594 Peak 7  Median`/Gromit_MFI$`PE-CF594 Peak 6  Median`
+Gromit_PE_CF594_8to7 <- Gromit_MFI$`PE-CF594 Peak 8  Median`/Gromit_MFI$`PE-CF594 Peak 7  Median`
+Gromit_PE_CF594_4to1 <- Gromit_MFI$`PE-CF594 Peak 4  Median`/Gromit_MFI$`PE-CF594 Peak 1  Median`
+Gromit_PE_CF594_3to1 <- Gromit_MFI$`PE-CF594 Peak 3  Median`/Gromit_MFI$`PE-CF594 Peak 1  Median`
+
+
+
+Gromit_PE_CF594_MFI_Ratio <- data.frame(Gromit_PE_CF594_2to1,Gromit_PE_CF594_3to2, Gromit_PE_CF594_4to3, Gromit_PE_CF594_5to4, Gromit_PE_CF594_6to5, Gromit_PE_CF594_7to6, Gromit_PE_CF594_8to7, Gromit_PE_CF594_4to1 , Gromit_PE_CF594_3to1 )
+
+colnames(Gromit_PE_CF594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_PE_CF594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_PE_CF594_MFI_Ratio_LONG <- gather(Gromit_PE_CF594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_PE_CF594_MFI_Ratio_LONG$Fluorochrome <- "PE-CF594"
+
+
+##PE-Cy5
+
+Gromit_PE_Cy5_2to1 <- Gromit_MFI$`PE-Cy5 Peak 2  Median`/Gromit_MFI$`PE-Cy5 Peak 1  Median`
+Gromit_PE_Cy5_3to2 <- Gromit_MFI$`PE-Cy5 Peak 3  Median`/Gromit_MFI$`PE-Cy5 Peak 2  Median`
+Gromit_PE_Cy5_4to3 <- Gromit_MFI$`PE-Cy5 Peak 4  Median`/Gromit_MFI$`PE-Cy5 Peak 3  Median`
+Gromit_PE_Cy5_5to4 <- Gromit_MFI$`PE-Cy5 Peak 5  Median`/Gromit_MFI$`PE-Cy5 Peak 4  Median`
+Gromit_PE_Cy5_6to5 <- Gromit_MFI$`PE-Cy5 Peak 6  Median`/Gromit_MFI$`PE-Cy5 Peak 5  Median`
+Gromit_PE_Cy5_7to6 <- Gromit_MFI$`PE-Cy5 Peak 7  Median`/Gromit_MFI$`PE-Cy5 Peak 6  Median`
+Gromit_PE_Cy5_8to7 <- Gromit_MFI$`PE-Cy5 Peak 8  Median`/Gromit_MFI$`PE-Cy5 Peak 7  Median`
+Gromit_PE_Cy5_4to1 <- Gromit_MFI$`PE-Cy5 Peak 4  Median`/Gromit_MFI$`PE-Cy5 Peak 1  Median`
+Gromit_PE_Cy5_3to1 <- Gromit_MFI$`PE-Cy5 Peak 3  Median`/Gromit_MFI$`PE-Cy5 Peak 1  Median`
+
+Gromit_PE_Cy5_MFI_Ratio <- data.frame(Gromit_PE_Cy5_2to1,Gromit_PE_Cy5_3to2, Gromit_PE_Cy5_4to3, Gromit_PE_Cy5_5to4, Gromit_PE_Cy5_6to5, Gromit_PE_Cy5_7to6, Gromit_PE_Cy5_8to7, Gromit_PE_Cy5_4to1, Gromit_PE_Cy5_3to1)
+
+colnames(Gromit_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_PE_Cy5_MFI_Ratio_LONG <- gather(Gromit_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Gromit_PE_Cy7_2to1 <- Gromit_MFI$`PE-Cy7 Peak 2  Median`/Gromit_MFI$`PE-Cy7 Peak 1  Median`
+Gromit_PE_Cy7_3to2 <- Gromit_MFI$`PE-Cy7 Peak 3  Median`/Gromit_MFI$`PE-Cy7 Peak 2  Median`
+Gromit_PE_Cy7_4to3 <- Gromit_MFI$`PE-Cy7 Peak 4  Median`/Gromit_MFI$`PE-Cy7 Peak 3  Median`
+Gromit_PE_Cy7_5to4 <- Gromit_MFI$`PE-Cy7 Peak 5  Median`/Gromit_MFI$`PE-Cy7 Peak 4  Median`
+Gromit_PE_Cy7_6to5 <- Gromit_MFI$`PE-Cy7 Peak 6  Median`/Gromit_MFI$`PE-Cy7 Peak 5  Median`
+Gromit_PE_Cy7_7to6 <- NA
+Gromit_PE_Cy7_8to7 <- NA
+Gromit_PE_Cy7_4to1 <- Gromit_MFI$`PE-Cy7 Peak 4  Median`/Gromit_MFI$`PE-Cy7 Peak 1  Median`
+Gromit_PE_Cy7_3to1 <- Gromit_MFI$`PE-Cy7 Peak 3  Median`/Gromit_MFI$`PE-Cy7 Peak 1  Median`
+
+
+Gromit_PE_Cy7_MFI_Ratio <- data.frame(Gromit_PE_Cy7_2to1,Gromit_PE_Cy7_3to2, Gromit_PE_Cy7_4to3, Gromit_PE_Cy7_5to4, Gromit_PE_Cy7_6to5, Gromit_PE_Cy7_7to6, Gromit_PE_Cy7_8to7, Gromit_PE_Cy7_4to1, Gromit_PE_Cy7_3to1)
+
+colnames(Gromit_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_PE_Cy7_MFI_Ratio_LONG <- gather(Gromit_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Gromit_PerCP_Cy5_2to1 <- Gromit_MFI$`PerCP-Cy5 Peak 2  Median`/Gromit_MFI$`PerCP-Cy5 Peak 1  Median`
+Gromit_PerCP_Cy5_3to2 <- Gromit_MFI$`PerCP-Cy5 Peak 3  Median`/Gromit_MFI$`PerCP-Cy5 Peak 2  Median`
+Gromit_PerCP_Cy5_4to3 <- Gromit_MFI$`PerCP-Cy5 Peak 4  Median`/Gromit_MFI$`PerCP-Cy5 Peak 3  Median`
+Gromit_PerCP_Cy5_5to4 <- Gromit_MFI$`PerCP-Cy5 Peak 5  Median`/Gromit_MFI$`PerCP-Cy5 Peak 4  Median`
+Gromit_PerCP_Cy5_6to5 <- Gromit_MFI$`PerCP-Cy5 Peak 6  Median`/Gromit_MFI$`PerCP-Cy5 Peak 5  Median`
+Gromit_PerCP_Cy5_7to6 <- Gromit_MFI$`PerCP-Cy5 Peak 7  Median`/Gromit_MFI$`PerCP-Cy5 Peak 6  Median`
+Gromit_PerCP_Cy5_8to7 <- NA
+Gromit_PerCP_Cy5_4to1 <- Gromit_MFI$`PerCP-Cy5 Peak 4  Median`/Gromit_MFI$`PerCP-Cy5 Peak 1  Median`
+Gromit_PerCP_Cy5_3to1 <- Gromit_MFI$`PerCP-Cy5 Peak 3  Median`/Gromit_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Gromit_PerCP_Cy5_MFI_Ratio <- data.frame(Gromit_PerCP_Cy5_2to1,Gromit_PerCP_Cy5_3to2, Gromit_PerCP_Cy5_4to3, Gromit_PerCP_Cy5_5to4, Gromit_PerCP_Cy5_6to5, Gromit_PerCP_Cy5_7to6, Gromit_PerCP_Cy5_8to7, Gromit_PerCP_Cy5_4to1, Gromit_PerCP_Cy5_3to1)
+
+colnames(Gromit_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Gromit_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17",  "06/18")
+
+Gromit_PerCP_Cy5_MFI_Ratio_LONG <- gather(Gromit_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Gromit_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Gromit_MFI_Ratios Data Frame
+
+
+Gromit_MFI_Ratios <- rbind(Gromit_Alexa700_MFI_Ratio_LONG, 
+                           Gromit_APC_Cy7_MFI_Ratio_LONG, 
+                           Gromit_APC_MFI_Ratio_LONG, 
+                           Gromit_BUV395_MFI_Ratio_LONG,
+                           Gromit_BUV496_MFI_Ratio_LONG,
+                           Gromit_BUV737_MFI_Ratio_LONG,
+                           Gromit_BV421_MFI_Ratio_LONG,
+                           Gromit_BV510_MFI_Ratio_LONG,
+                           Gromit_BV605_MFI_Ratio_LONG,
+                           Gromit_BV650_MFI_Ratio_LONG,
+                           Gromit_BV711_MFI_Ratio_LONG,
+                           Gromit_BV786_MFI_Ratio_LONG,
+                           Gromit_FITC_MFI_Ratio_LONG,
+                           Gromit_PE_MFI_Ratio_LONG,
+                           Gromit_PE_CF594_MFI_Ratio_LONG,
+                           Gromit_PE_Cy5_MFI_Ratio_LONG,
+                           Gromit_PE_Cy7_MFI_Ratio_LONG,
+                           Gromit_PerCP_Cy5_MFI_Ratio_LONG)
+
+
+Gromit_MFI_PLOT1 <- ggplot(Gromit_MFI_Ratios, aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Ratio of Peaks by Fluorochrome (Gromit)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+Gromit_MFI_PLOT1
+
+
+Gromit_MFI_PLOT2 <- ggplot(Gromit_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Gromit: Variation in Peak Separation (06/14 to 06/18)")
+
+Gromit_MFI_PLOT2 
+
+
+ggsave('Gromit_MFI_PLOT2.png', Gromit_MFI_PLOT2,  width = 10, height = 5, units = c("in"))
+
+
+# MFI DIFFERENCE FROM BASELINE
+
+Gromit_MFI_Day2_Change <- Gromit_MFI[2,]-Gromit_MFI[1,]
+Gromit_MFI_Day3_Change <- Gromit_MFI[3,]-Gromit_MFI[1,]
+Gromit_MFI_Day4_Change <- Gromit_MFI[4,]-Gromit_MFI[1,]
+Gromit_MFI_Day5_Change <- Gromit_MFI[5,]-Gromit_MFI[1,]
+
+Gromit_MFI_Difference <- rbind(Gromit_MFI_Day2_Change,Gromit_MFI_Day3_Change,Gromit_MFI_Day4_Change,Gromit_MFI_Day5_Change)
+
+Gromit_MFI_Difference$Day <- c("06/15", "06/16", "07/17", "06/18")
+
+Gromit_MFI_Difference_LONG <- gather(Gromit_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gromit_MFI_Difference_LONG <- separate(data = Gromit_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gromit_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Gromit_MFI_Difference_LONG$Peak))
+
+Gromit_MFI_PLOT3 <- ggplot(Gromit_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Gromit: MFI Difference from Baseline by Fluorochrome ') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("Gromit_MFI_PLOT3.png", Gromit_MFI_PLOT3, width = 10, height = 5, units = c("in"))
+
+
+
+Gromit_MFI_PLOT4 <-ggplot(Gromit_MFI_Difference_LONG, aes(x=Peak, y=Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=5) + ggtitle('Gromit: Distribution of MFI Difference from Baseline (06/14 to 06/18)') 
+
+ggsave("Gromit_MFI_PLOT4.png", Gromit_MFI_PLOT4, width = 10, height = 5, units = c("in"))
+
+
+```
+
+MFI Ratio for ALL Instruments
+```{r}
+
+Gromit_MFI_Ratios$Instrument <- "Gromit"
+Gadget_MFI_Ratios$Instrument <- "Gadget"
+Wallace_MFI_Ratios$Instrument <- "Wallace"
+Penny_MFI_Ratios$Instrument <- "Penny"
+
+Rosalind_MFI_Ratios$Instrument <- "Rosalind"
+Tesla_MFI_Ratios$Instrument <- "Tesla"
+
+MFI_Ratio_ALL <- rbind(Gromit_MFI_Ratios, Gadget_MFI_Ratios, Wallace_MFI_Ratios, Penny_MFI_Ratios,
+                       Rosalind_MFI_Ratios, Tesla_MFI_Ratios)
+
+MFI_Ratio_ALL <- as.data.frame(MFI_Ratio_ALL)
+
+MFI_Ratio_ALL$Fluorochrome <- as.character(MFI_Ratio_ALL$Fluorochrome)
+
+MFI_Ratio_ALL$Fluorochrome[MFI_Ratio_ALL$Fluorochrome == "BUV395"] <- "BUV396"
+MFI_Ratio_ALL$Fluorochrome[MFI_Ratio_ALL$Fluorochrome == "PE-Alexa594"] <- "PE-CF594"
+#write.csv(MFI_Ratio_ALL,"MFI Ratios for 6 Instruments.csv", row.names = FALSE)
+
+MFI_Ratio_Inst2 <- MFI_Ratio_ALL %>% filter(Peak == "3:1") %>%  ggplot(aes(x=Instrument, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle("Ratio of Peak 3:1 by Fluorochrome") + 
+  scale_x_discrete(limits = c("Gadget", "Gromit", "Wallace", "Penny", "Rosalind", "Tesla"))
+
+#ggsave("MFI_Ratio_Inst2.png", MFI_Ratio_Inst2, width = 10, height = 5, units = c("in"))
+
+```
+
+Day to Day Variation
+```{r}
+
+Gromit_MFI_Day2D_Change <- Gromit_MFI[2,]-Gromit_MFI[1,]
+Gromit_MFI_Day3D_Change <- Gromit_MFI[3,]-Gromit_MFI[2,]
+Gromit_MFI_Day4D_Change <- Gromit_MFI[4,]-Gromit_MFI[3,]
+Gromit_MFI_Day5D_Change <- Gromit_MFI[5,]-Gromit_MFI[4,]
+
+
+Gromit_MFI_DifferenceDD <- rbind(Gromit_MFI_Day2D_Change,Gromit_MFI_Day3D_Change,Gromit_MFI_Day4D_Change,Gromit_MFI_Day5D_Change)
+
+
+Gromit_MFI_DifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gromit_MFI_DifferenceDD
+
+
+Gromit_MFI_DifferenceDD_LONG <- gather(Gromit_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+
+Gromit_MFI_DifferenceDD_LONG
+
+Gromit_MFI_DifferenceDD_LONG <- separate(data = Gromit_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gromit_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Gromit_MFI_DifferenceDD_LONG$Peak))
+
+Gromit_MFI_DifferenceDD_LONG
+
+
+
+```
+
+```{r}
+
+
+Gromit13 <- ggplot(Gromit_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Gromit: MFI Daily Difference by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("Gromit13.png", Gromit13, width = 10, height = 5, units = c("in"))
+
+
+plot2<- Gromit_MFI_DifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gromit: Distribution of MFI Difference Day to Day (06/14 to 06/18)') 
+
+ggsave("Gromit2.png", plot2, width = 10, height = 5, units = c("in"))
+
+```
+
+```{r}
+
+#Daily Percent Change
+Gromit_MFI_Day2D_PercentChange <- ((Gromit_MFI[2,]-Gromit_MFI[1,])/Gromit_MFI[1,]) * 100
+Gromit_MFI_Day3D_PercentChange <- ((Gromit_MFI[3,]-Gromit_MFI[2,])/Gromit_MFI[2,]) * 100
+Gromit_MFI_Day4D_PercentChange <- ((Gromit_MFI[4,]-Gromit_MFI[3,])/Gromit_MFI[3,]) * 100
+Gromit_MFI_Day5D_PercentChange <- ((Gromit_MFI[5,]-Gromit_MFI[4,])/Gromit_MFI[4,]) * 100
+
+
+Gromit_MFI_PercentDifferenceDD <- rbind(Gromit_MFI_Day2D_PercentChange,Gromit_MFI_Day3D_PercentChange,Gromit_MFI_Day4D_PercentChange,Gromit_MFI_Day5D_PercentChange)
+
+Gromit_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gromit_MFI_PercentDifferenceDD_LONG <- gather(Gromit_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gromit_MFI_PercentDifferenceDD_LONG <- separate(data = Gromit_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gromit_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Gromit_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Gromit7<- Gromit_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gromit: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Gromit7.png", Gromit7, width = 10, height = 5, units = c("in"))
+
+
+Gromit8<- Gromit_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gromit: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Gromit8.png", Gromit8, width = 10, height = 5, units = c("in"))
+
+
+
+Gromit_MFI_DifferenceDD_LONG %>% kbl(caption = "Gromit: Data for MFI Daily Difference") %>%
+  kable_classic(full_width = F, html_font = "Arial") 
+
+```
+
+
+
+
+
+
+```{r}
+
+Gromit_PMTV <- read_csv("Gromit/PMTV.csv")
+
+Gromit_PMTV <- Gromit_PMTV[c((-1:-2)),c(1,14:18)]
+
+colnames(Gromit_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Gromit_PMTV_LONG <- gather(Gromit_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Gromit_PMTV_LONG$Fluorochrome[Gromit_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+Gromit_MASTERDD <- merge(Gromit_MFI_DifferenceDD_LONG, Gromit_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+#Gromit_MASTER$Difference <- abs(Gromit_MASTER$Difference)
+#Gromit_MASTER$Voltage <- abs(Gromit_MASTER$Voltage)
+
+Gromit5 = ggplot(Gromit_MASTERDD, aes(x = Fluorochrome, y = Difference)) + 
+  geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,30), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Peak, nrow=2) + ggtitle("Gromit: PMTV and MFI Difference by Fluorochrome")
+
+Gromit5
+
+ggsave("Gromit5.png", Gromit5, width = 10, height = 5, units = c("in"))
+
+
+
+Gromit10 <- Gromit_MASTERDD %>% filter(Peak=="Peak 1  ") %>% ggplot(aes(Fluorochrome, Difference)) + geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,50), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9)) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gromit: Peak 1 PMTV and MFI Difference by Fluorochrome")
+
+
+ggsave("Gromit10.png", Gromit10, width = 10, height = 7, units = c("in"))
+
+
+Gromit6 <- Gromit_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(Voltage, Difference)) + geom_point(aes(fill = Fluorochrome), alpha = 0.75, shape = 21) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gromit: Peak 1 PMTV and MFI Difference by Fluorochrome") + facet_wrap(~Date, nrow=2) 
+
+Gromit6
+
+ggsave("Gromit6.png", Gromit6, width = 10, height = 5, units = c("in"))
+
+#Gromit_MASTERDD %>% gather(key=c("Date", "Fluorochrome"), value)
+
+Gromit10 <- Gromit_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x=Date)) + geom_line(aes(y = Voltage)) + geom_line(aes(y=Difference)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit10
+
+```
+
+```{r}
+Gromit14 <- Gromit_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit14
+
+ggsave("Gromit14.png", Gromit14, width = 10, height = 5, units = c("in"))
+
+
+Gromit15 <- Gromit_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit15
+
+ggsave("Gromit15.png", Gromit15, width = 10, height = 5, units = c("in"))
+
+
+Gromit16 <- Gromit_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit16
+
+ggsave("Gromit16.png", Gromit16, width = 10, height = 5, units = c("in"))
+
+
+Gromit17 <- Gromit_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit17
+
+ggsave("Gromit17.png", Gromit17, width = 10, height = 5, units = c("in"))
+
+Gromit18 <- Gromit_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit18
+
+ggsave("Gromit18.png", Gromit18, width = 10, height = 5, units = c("in"))
+
+Gromit19 <- Gromit_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit19
+
+ggsave("Gromit19.png", Gromit19, width = 10, height = 5, units = c("in"))
+
+
+
+Gromit20 <- Gromit_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit20
+
+ggsave("Gromit20.png", Gromit20, width = 10, height = 5, units = c("in"))
+
+Gromit21 <- Gromit_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit21
+
+ggsave("Gromit21.png", Gromit21, width = 10, height = 5, units = c("in"))
+
+
+Gromit22 <- Gromit_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Gromit22
+
+ggsave("Gromit22.png", Gromit22, width = 10, height = 5, units = c("in"))
+
+
+Gromit23 <- Gromit_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Gromit23.png", Gromit23, width = 7, height = 10, units = c("in"))
+
+
+Gromit24 <- Gromit_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Gromit24.png", Gromit24, width = 7, height = 10, units = c("in"))
+
+Gromit25 <- Gromit_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Gromit: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Gromit25.png", Gromit25, width = 7, height = 10, units = c("in"))
+
+
+
+Gromit_MASTERDD$Instrument <- "Gromit"
+
+Bind <- rbind(Penny_MASTERDD, 
+              Gromit_MASTERDD, 
+              Wallace_MASTERDD, 
+              Gadget_MASTERDD)
+
+PWGG1 <- PWGG  %>%  ggplot(aes(x=Fluorochrome, y=Voltage, fill = Instrument)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of CST Voltages for Penny, Gadget, Wallace, and Gromit")
+
+
+ggsave("PWGG1.png", PWGG1, width = 12, height = 5, units = c("in"))
+
+
+
+```
+
+```{r}
+
+Gromit_RCV <- Gromit %>% select(contains("Robust CV"))
+
+Gromit_RCV$`BUV396 Peak 1  Robust CV` <- Gromit_RCV$`BUV395 Peak 3  Robust CV`
+
+Gromit_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Gromit_RCV_LONG <- gather(Gromit_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 7  Robust CV", factor_key=TRUE)
+
+Gromit_RCV_LONG <- separate(data = Gromit_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gromit_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Gromit_RCV_LONG$Peak))
+
+
+Gromit7 <- ggplot(Gromit_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gromit: Distribution of RCV (06/14 to 06/18)') 
+
+Gromit8 <- Gromit7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("GromitRCV1.png", Gromit7, width = 10, height = 5, units = c("in"))
+
+ggsave("GromitRCV2.png", Gromit8, width = 10, height = 5, units = c("in"))
+```
+
+
+
+```{r}
+Gromit_MFI_Peak4_Long$Instrument <- "Gromit"
+Penny_MFI_Peak4_Long$Instrument <- "Penny"
+Wallace_MFI_Peak4_Long$Instrument <- "Wallace"
+Gadget_MFI_Peak4_Long$Instrument <- "Gadget"
+#Rosalind_MFI_Peak4_Long$Instrument <- "Rosalind"
+#Tesla_MFI_Peak4_Long$Instrument <- "Tesla"
+
+
+Peak41Diff <- rbind(Gromit_MFI_Peak4_Long,Penny_MFI_Peak4_Long,Wallace_MFI_Peak4_Long,Gadget_MFI_Peak4_Long, Rosalind_MFI_Peak4_Long,
+                    Tesla_MFI_Peak4_Long)
+
+
+MFI_DiffInst <- Peak41Diff %>% ggplot(aes(x=Instrument, y=Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = 'free_y') + ggtitle("Peak 1 and 4 Separation by Fluorochrome") + 
+  scale_x_discrete(limits = c("Gadget", "Gromit", "Wallace", "Penny", "Rosalind", "Tesla")) +
+  geom_blank(aes(y = 85000)) +
+  geom_blank(aes(y = 105000))
+
+ggsave("MFI_DiffInst.png", MFI_DiffInst, width = 10, height = 5, units = c("in"))
+
+
+MFI_DiffInst2 <- Peak41Diff %>% ggplot(aes(x=Instrument, y=`Percent Difference`)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = 'free_y') + ggtitle("Peak 1 and 4 % Separation by Fluorochrome") + 
+  scale_x_discrete(limits = c("Gadget", "Gromit", "Wallace", "Penny", "Rosalind", "Tesla"))
+
+ggsave("MFI_DiffInst2.png", MFI_DiffInst2, width = 10, height = 5, units = c("in"))
+
+
+```
+
+
+
+#Daily Percent Change from Baseseline
+
+
+```{r}
+Gromit_MFI_Base_PercentChange2 <- ((Gromit_MFI[2,]-Gromit_MFI[1,])/Gromit_MFI[1,]) * 100
+Gromit_MFI_Base_PercentChange3 <- ((Gromit_MFI[3,]-Gromit_MFI[1,])/Gromit_MFI[1,]) * 100
+Gromit_MFI_Base_PercentChange4 <- ((Gromit_MFI[4,]-Gromit_MFI[1,])/Gromit_MFI[1,]) * 100
+Gromit_MFI_Base_PercentChange5 <- ((Gromit_MFI[5,]-Gromit_MFI[1,])/Gromit_MFI[1,]) * 100
+
+
+Gromit_MFI_Base_PercentDifference <- rbind(Gromit_MFI_Base_PercentChange2,Gromit_MFI_Base_PercentChange3,Gromit_MFI_Base_PercentChange4,Gromit_MFI_Base_PercentChange5)
+
+Gromit_MFI_Base_PercentDifference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Gromit_MFI_Base_PercentDifference_LONG <- gather(Gromit_MFI_Base_PercentDifference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Gromit_MFI_Base_PercentDifference_LONG <- separate(data = Gromit_MFI_Base_PercentDifference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Gromit_MFI_Base_PercentDifference_LONG$Peak<-gsub("Median","",as.character(Gromit_MFI_Base_PercentDifference_LONG$Peak))
+
+
+Gromit7<- Gromit_MFI_Base_PercentDifference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gromit: Distribution of MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Gromit7.png", Gromit7, width = 10, height = 5, units = c("in"))
+
+
+Gromit8<-  Gromit_MFI_Base_PercentDifference_LONG  %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Gromit: Daily MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Gromit8.png", Gromit8, width = 10, height = 5, units = c("in"))
+
+```
+
+rSD Data
+```{r}
+Gromit_rSD <- Gromit %>% select(contains("Robust SD"))
+Gromit_rSD$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+
+Gromit_rSD_LONG <- gather(Gromit_rSD, Peak, rSD, "Alexa700 Peak 1  Robust SD":"PerCP-Cy5 Peak 7  Robust SD", factor_key=TRUE)
+
+Gromit_rSD_LONG <- separate(data = Gromit_rSD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Gromit_rSD_LONG$Peak<-gsub("Robust SD","",as.character(Gromit_rSD_LONG$Peak))
+
+
+Gromit_rSD_plot <- ggplot(Gromit_rSD_LONG, aes(x=Peak, y=rSD)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Gromit: Distribution of rSD (06/14 to 06/18)') 
+
+
+```
+
+Stain Index
+
+```{r}
+
+Gromit_StainIndex <- data.frame(Gromit_MFI_Peak1_Long$Date, Gromit_MFI_Peak1_Long$Fluorochrome, Gromit_MFI_Peak1_Long$MFI, Gromit_MFI_Peak4_Long$MFI)
+
+colnames(Gromit_StainIndex) <- c("Date", "Fluorochrome", "Peak 1 MFI", "Peak 4 MFI")
+Gromit_StainIndex$`Peak 1 - Peak 4` <- Gromit_MFI_Peak1_Long$MFI - Gromit_MFI_Peak4_Long$MFI
+
+
+Gromit_StainIndex 
+
+
+Gromit_Peak4_rSD <- Gromit_rSD_LONG %>% filter(Peak == "Peak 4  ")
+
+Gromit_StainIndex <- merge(Gromit_StainIndex,Gromit_Peak4_rSD, by = c("Date", "Fluorochrome"))
+
+Gromit_StainIndex$`Stain Index` <- Gromit_StainIndex$`Peak 1 - Peak 4`/(2*Gromit_StainIndex$rSD)
+
+Gromit_StainIndex %>% ggplot(aes(x=Date, y=`Stain Index`)) + geom_line() + geom_point() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Gromit: Stain Index")
+
+Gromit_StainIndex %>% filter(Fluorochrome == "BV510")
+
+```
+
+Gromit % Change in Stain Index from Baseline
+```{r}
+Gromit_StainIndex2 <- Gromit_StainIndex[,-c(3:7)]
+Gromit_StainIndex_Wide <- spread(Gromit_StainIndex2, Date, `Stain Index`)
+
+Gromit_StainIndex_Wide$Day2Change <- ((Gromit_StainIndex_Wide$`06/15` - Gromit_StainIndex_Wide$`06/14`)/Gromit_StainIndex_Wide$`06/14`) * 100
+Gromit_StainIndex_Wide$Day3Change <- ((Gromit_StainIndex_Wide$`06/16` - Gromit_StainIndex_Wide$`06/14`)/Gromit_StainIndex_Wide$`06/14`) * 100
+Gromit_StainIndex_Wide$Day4Change <- ((Gromit_StainIndex_Wide$`06/17` - Gromit_StainIndex_Wide$`06/14`)/Gromit_StainIndex_Wide$`06/14`) * 100
+Gromit_StainIndex_Wide$Day5Change <- ((Gromit_StainIndex_Wide$`06/18` - Gromit_StainIndex_Wide$`06/14`)/Gromit_StainIndex_Wide$`06/14`) * 100
+
+Gromit_StainIndex_Wide
+```
+
+
+CST rCV
+```{r}
+Gromit_CST_rCV <- read_csv("Gromit/Gromit CST rCV Bright Bead.csv")
+colnames(Gromit_CST_rCV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+Gromit_CST_rCV <- Gromit_CST_rCV[-c(1,2),]
+Gromit_CST_rCV_Long <- gather(Gromit_CST_rCV, "Date", "rCV", "06/14":"06/18", factor_key = TRUE)
+
+Gadget_CST_rCV <- read_csv("Gadget/Gadget CST rCV Bright Bead.csv")
+colnames(Gadget_CST_rCV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+Gadget_CST_rCV <- Gadget_CST_rCV[-c(1,2),]
+Gadget_CST_rCV_Long <- gather(Gadget_CST_rCV, "Date", "rCV", "06/14":"06/18", factor_key = TRUE)
+ 
+Penny_CST_rCV <- read_csv("Penny/Penny CST rCV Bright Bead.csv")
+colnames(Penny_CST_rCV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+Penny_CST_rCV <- Penny_CST_rCV[-c(1,2),]
+Penny_CST_rCV_Long <- gather(Penny_CST_rCV, "Date", "rCV", "06/14":"06/18", factor_key = TRUE)
+
+Wallace_CST_rCV <- read_csv("Wallace/Wallace CST rCV Bright Bead.csv")
+colnames(Wallace_CST_rCV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+Wallace_CST_rCV <- Wallace_CST_rCV[-c(1,2),]
+Wallace_CST_rCV_Long <- gather(Wallace_CST_rCV, "Date", "rCV", "06/14":"06/18", factor_key = TRUE)
+
+
+Gromit_CST_rCV_Long$Instrument <- "Gromit"
+Gadget_CST_rCV_Long$Instrument <- "Gadget"
+Penny_CST_rCV_Long$Instrument <- "Penny"
+Wallace_CST_rCV_Long$Instrument <- "Wallace"
+
+CST_rCV <- rbind(Gadget_CST_rCV_Long, Gromit_CST_rCV_Long, Penny_CST_rCV_Long, Wallace_CST_rCV_Long)
+CST_rCV$Method <- "CST"
+
+```
+
+8 PK RB rCV
+```{r}
+
+Gromit_8PK_rCV_Long <- Gromit_RCV_LONG %>% filter(Peak == "Peak 1  ")
+Gromit_8PK_rCV_Long <- Gromit_8PK_rCV_Long[,-3]
+colnames(Gromit_8PK_rCV_Long) <- c("Date", "Fluorochrome", "rCV", "Instrument")
+
+
+Gadget_8PK_rCV_Long <- Gadget_RCV_LONG %>% filter(Peak == "Peak 1  ")
+Gadget_8PK_rCV_Long <- Gadget_8PK_rCV_Long[,-3]
+Gadget_8PK_rCV_Long$Instrument <- "Gadget"
+colnames(Gadget_8PK_rCV_Long) <- c("Date", "Fluorochrome", "rCV", "Instrument")
+
+Penny_8PK_rCV_Long <- Penny_RCV_LONG %>% filter(Peak == "Peak 1  ")
+Penny_8PK_rCV_Long <- Penny_8PK_rCV_Long[,-3]
+colnames(Penny_8PK_rCV_Long) <- c("Date", "Fluorochrome", "rCV", "Instrument")
+
+Wallace_8PK_rCV_Long <- Wallace_RCV_LONG %>% filter(Peak == "Peak 1  ")
+Wallace_8PK_rCV_Long <- Wallace_8PK_rCV_Long[,-3]
+colnames(Wallace_8PK_rCV_Long) <- c("Date", "Fluorochrome", "rCV", "Instrument")
+
+
+RB_rCV <- rbind(Gadget_8PK_rCV_Long,Gromit_8PK_rCV_Long,Penny_8PK_rCV_Long, Wallace_8PK_rCV_Long)
+
+RB_rCV$Method <- "8 PK RB"
+
+rCV_Bright <- rbind(CST_rCV, RB_rCV)
+
+rCV_Bright$Fluorochrome[rCV_Bright$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+
+rCV_Bright$Fluorochrome[rCV_Bright$Fluorochrome == "Alexa Fluor 700"] <- "Alexa700"
+
+
+  
+
+rCV_Bright %>% filter(Fluorochrome == "FITC") %>% ggplot(aes(x=Date, y=rCV, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Instrument) +
+  ggtitle("Daily rCV of Brightest Peak for 8 PK RB and CST") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  
+Dlabels=c("Day 1", "Day 2", "Day 3", "Day 4", "Day 5")
+
+  
+
+Pk1_Gadget <- rCV_Bright %>% filter(Instrument == "Gadget") %>% ggplot(aes(x=Date, y=rCV, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow=3) +
+  ggtitle("Fortessa-1 Daily rCV of Brightest Peak for 8 PK RB (Peak 1) and CST") + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) +  scale_x_discrete(labels=Dlabels)
+
+ggsave("Pk1_Gadget.png", Pk1_Gadget, width = 10, height = 5, units = c("in"))
+
+Pk1_Gromit <- rCV_Bright %>% filter(Instrument == "Gromit") %>% ggplot(aes(x=Date, y=rCV, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow=3) +
+  ggtitle("Fortessa-2 Daily rCV of Brightest Peak for 8 PK RB (Peak 1) and CST") + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) +  scale_x_discrete(labels=Dlabels)
+
+ggsave("Pk1_Gromit.png", Pk1_Gromit, width = 10, height = 5, units = c("in"))
+
+rCV_Bright %>% filter(Instrument == "Penny" & Fluorochrome == "BUV396")
+
+rCV_Bright$Fluorochrome[rCV_Bright$Fluorochrome == "BUV396"] <- "BUV395"
+
+
+Pk1_Penny <- rCV_Bright %>% filter(Instrument == "Penny") %>% ggplot(aes(x=Date, y=rCV, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow=3) +
+  ggtitle("Fortessa-3 Daily rCV of Brightest Peak for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) +  scale_x_discrete(labels=Dlabels)
+ggsave("Pk1_Penny.png", Pk1_Penny, width = 10, height = 5, units = c("in"))
+
+
+Pk1_Wallace <- rCV_Bright %>% filter(Instrument == "Wallace") %>% ggplot(aes(x=Date, y=rCV, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow = 3) +
+  ggtitle("Fortessa-4 Daily rCV of Brightest Peak for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) +  scale_x_discrete(labels=Dlabels)
+ggsave("Pk1_Wallace.png", Pk1_Wallace, width = 10, height = 5, units = c("in"))
+```
+
+%change in rCV from CST and 8 PK RB
+
+```{r}
+Gromit_8PK_rCV_Wide <- spread(Gromit_8PK_rCV_Long, Date, rCV)
+Penny_8PK_rCV_Wide <- spread(Penny_8PK_rCV_Long, Date, rCV)
+Wallace_8PK_rCV_Wide <- spread(Wallace_8PK_rCV_Long, Date, rCV)
+Gadget_8PK_rCV_Wide <- spread(Gadget_8PK_rCV_Long, Date, rCV)
+
+
+Penny_8PK_rCV_Wide$`Day 2` <- ((Penny_8PK_rCV_Wide$`06/15` - Penny_8PK_rCV_Wide$`06/14`) / Penny_8PK_rCV_Wide$`06/14`) * 100
+Penny_8PK_rCV_Wide$`Day 3` <- ((Penny_8PK_rCV_Wide$`06/16` - Penny_8PK_rCV_Wide$`06/14`) / Penny_8PK_rCV_Wide$`06/14`) * 100
+Penny_8PK_rCV_Wide$`Day 4` <- ((Penny_8PK_rCV_Wide$`06/17` - Penny_8PK_rCV_Wide$`06/14`) / Penny_8PK_rCV_Wide$`06/14`) * 100
+Penny_8PK_rCV_Wide$`Day 5` <- ((Penny_8PK_rCV_Wide$`06/18` - Penny_8PK_rCV_Wide$`06/14`) / Penny_8PK_rCV_Wide$`06/14`) * 100
+    
+Wallace_8PK_rCV_Wide$`Day 2` <- ((Wallace_8PK_rCV_Wide$`06/15` - Wallace_8PK_rCV_Wide$`06/14`) / Wallace_8PK_rCV_Wide$`06/14`) * 100
+Wallace_8PK_rCV_Wide$`Day 3` <- ((Wallace_8PK_rCV_Wide$`06/16` - Wallace_8PK_rCV_Wide$`06/14`) / Wallace_8PK_rCV_Wide$`06/14`) * 100
+Wallace_8PK_rCV_Wide$`Day 4` <- ((Wallace_8PK_rCV_Wide$`06/17` - Wallace_8PK_rCV_Wide$`06/14`) / Wallace_8PK_rCV_Wide$`06/14`) * 100
+Wallace_8PK_rCV_Wide$`Day 5` <- ((Wallace_8PK_rCV_Wide$`06/18` - Wallace_8PK_rCV_Wide$`06/14`) / Wallace_8PK_rCV_Wide$`06/14`) * 100
+
+Gadget_8PK_rCV_Wide$`Day 2` <- ((Gadget_8PK_rCV_Wide$`06/15` - Gadget_8PK_rCV_Wide$`06/14`) / Gadget_8PK_rCV_Wide$`06/14`) * 100
+Gadget_8PK_rCV_Wide$`Day 3` <- ((Gadget_8PK_rCV_Wide$`06/16` - Gadget_8PK_rCV_Wide$`06/14`) / Gadget_8PK_rCV_Wide$`06/14`) * 100
+Gadget_8PK_rCV_Wide$`Day 4` <- ((Gadget_8PK_rCV_Wide$`06/17` - Gadget_8PK_rCV_Wide$`06/14`) / Gadget_8PK_rCV_Wide$`06/14`) * 100
+Gadget_8PK_rCV_Wide$`Day 5` <- ((Gadget_8PK_rCV_Wide$`06/18` - Gadget_8PK_rCV_Wide$`06/14`) / Gadget_8PK_rCV_Wide$`06/14`) * 100
+
+Gromit_8PK_rCV_Wide$`Day 2` <- ((Gromit_8PK_rCV_Wide$`06/15` - Gromit_8PK_rCV_Wide$`06/14`) / Gromit_8PK_rCV_Wide$`06/14`) * 100
+Gromit_8PK_rCV_Wide$`Day 3` <- ((Gromit_8PK_rCV_Wide$`06/16` - Gromit_8PK_rCV_Wide$`06/14`) / Gromit_8PK_rCV_Wide$`06/14`) * 100
+Gromit_8PK_rCV_Wide$`Day 4` <- ((Gromit_8PK_rCV_Wide$`06/17` - Gromit_8PK_rCV_Wide$`06/14`) / Gromit_8PK_rCV_Wide$`06/14`) * 100
+Gromit_8PK_rCV_Wide$`Day 5` <- ((Gromit_8PK_rCV_Wide$`06/18` - Gromit_8PK_rCV_Wide$`06/14`) / Gromit_8PK_rCV_Wide$`06/14`) * 100
+  
+
+Gromit_8PK_rCV_Wide <- Gromit_8PK_rCV_Wide[,-c(3:7)]
+Gadget_8PK_rCV_Wide <- Gadget_8PK_rCV_Wide[,-c(3:7)]
+Penny_8PK_rCV_Wide <- Penny_8PK_rCV_Wide[,-c(3:7)]
+Wallace_8PK_rCV_Wide <- Wallace_8PK_rCV_Wide[,-c(3:7)]
+
+rCV_8PK_Wide <- rbind(Gromit_8PK_rCV_Wide , Gadget_8PK_rCV_Wide, Penny_8PK_rCV_Wide, Wallace_8PK_rCV_Wide)
+rCV_8PK_Change_Long <- gather(rCV_8PK_Wide, Day, `% Change`, "Day 2":"Day 5")
+rCV_8PK_Change_Long$Method <- "8 PK RB"
+
+
+Gromit_CST_rCV_Wide <- spread(Gromit_CST_rCV_Long, Date, rCV)
+Gadget_CST_rCV_Wide <- spread(Gadget_CST_rCV_Long, Date, rCV)
+Penny_CST_rCV_Wide <- spread(Penny_CST_rCV_Long, Date, rCV)
+Wallace_CST_rCV_Wide <- spread(Wallace_CST_rCV_Long, Date, rCV)
+
+
+
+
+Gromit_CST_rCV_Wide$`Day 2` <- ((Gromit_CST_rCV_Wide$`06/15`-Gromit_CST_rCV_Wide$`06/14`) / Gromit_CST_rCV_Wide$`06/14`) * 100
+Gromit_CST_rCV_Wide$`Day 3` <- ((Gromit_CST_rCV_Wide$`06/16`-Gromit_CST_rCV_Wide$`06/14`) / Gromit_CST_rCV_Wide$`06/14`) * 100
+Gromit_CST_rCV_Wide$`Day 4` <- ((Gromit_CST_rCV_Wide$`06/17`-Gromit_CST_rCV_Wide$`06/14`) / Gromit_CST_rCV_Wide$`06/14`) * 100
+Gromit_CST_rCV_Wide$`Day 5` <- ((Gromit_CST_rCV_Wide$`06/18`-Gromit_CST_rCV_Wide$`06/14`) / Gromit_CST_rCV_Wide$`06/14`) * 100
+
+Gadget_CST_rCV_Wide$`Day 2` <- ((Gadget_CST_rCV_Wide$`06/15`-Gadget_CST_rCV_Wide$`06/14`) / Gadget_CST_rCV_Wide$`06/14`) * 100
+Gadget_CST_rCV_Wide$`Day 3` <- ((Gadget_CST_rCV_Wide$`06/16`-Gadget_CST_rCV_Wide$`06/14`) / Gadget_CST_rCV_Wide$`06/14`) * 100
+Gadget_CST_rCV_Wide$`Day 4` <- ((Gadget_CST_rCV_Wide$`06/17`-Gadget_CST_rCV_Wide$`06/14`) / Gadget_CST_rCV_Wide$`06/14`) * 100
+Gadget_CST_rCV_Wide$`Day 5` <- ((Gadget_CST_rCV_Wide$`06/18`-Gadget_CST_rCV_Wide$`06/14`) / Gadget_CST_rCV_Wide$`06/14`) * 100
+
+Penny_CST_rCV_Wide$`Day 2` <- ((Penny_CST_rCV_Wide$`06/15`-Penny_CST_rCV_Wide$`06/14`) / Penny_CST_rCV_Wide$`06/14`) * 100
+Penny_CST_rCV_Wide$`Day 3` <- ((Penny_CST_rCV_Wide$`06/16`-Penny_CST_rCV_Wide$`06/14`) / Penny_CST_rCV_Wide$`06/14`) * 100
+Penny_CST_rCV_Wide$`Day 4` <- ((Penny_CST_rCV_Wide$`06/17`-Penny_CST_rCV_Wide$`06/14`) / Penny_CST_rCV_Wide$`06/14`) * 100
+Penny_CST_rCV_Wide$`Day 5` <- ((Penny_CST_rCV_Wide$`06/18`-Penny_CST_rCV_Wide$`06/14`) / Penny_CST_rCV_Wide$`06/14`) * 100
+
+Wallace_CST_rCV_Wide$`Day 2` <- ((Wallace_CST_rCV_Wide$`06/15`-Wallace_CST_rCV_Wide$`06/14`) / Wallace_CST_rCV_Wide$`06/14`) * 100
+Wallace_CST_rCV_Wide$`Day 3` <- ((Wallace_CST_rCV_Wide$`06/16`-Wallace_CST_rCV_Wide$`06/14`) / Wallace_CST_rCV_Wide$`06/14`) * 100
+Wallace_CST_rCV_Wide$`Day 4` <- ((Wallace_CST_rCV_Wide$`06/17`-Wallace_CST_rCV_Wide$`06/14`) / Wallace_CST_rCV_Wide$`06/14`) * 100
+Wallace_CST_rCV_Wide$`Day 5` <- ((Wallace_CST_rCV_Wide$`06/18`-Wallace_CST_rCV_Wide$`06/14`) / Wallace_CST_rCV_Wide$`06/14`) * 100
+
+Gromit_CST_rCV_Wide <- Gromit_CST_rCV_Wide[,-c(3:7)]
+Gadget_CST_rCV_Wide <- Gadget_CST_rCV_Wide[,-c(3:7)]
+Penny_CST_rCV_Wide <- Penny_CST_rCV_Wide[,-c(3:7)]
+Wallace_CST_rCV_Wide <- Wallace_CST_rCV_Wide[,-c(3:7)]
+
+rCV_CST_Wide <- rbind(Gromit_CST_rCV_Wide, Gadget_CST_rCV_Wide, Penny_CST_rCV_Wide, Wallace_CST_rCV_Wide)
+
+rCV_CST_Change_Long <- gather(rCV_CST_Wide, Day, `% Change`, "Day 2":"Day 5")
+
+rCV_CST_Change_Long$Method <- "CST"
+
+
+rCV_Change_Master <- rbind(rCV_CST_Change_Long, rCV_8PK_Change_Long)
+rCV_Change_Master$Fluorochrome[rCV_Change_Master$Fluorochrome == 'PerCP-Cy5'] <- 'PerCP-Cy5-5'
+
+WallaceChangerCV <- rCV_Change_Master %>% filter(Instrument == "Wallace") %>% ggplot(aes(x=Day, y=`% Change`, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow = 3) +
+  ggtitle("Fortessa-4 Daily % Change in rCV for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) 
+
+
+ggsave("WallaceChangerCV.png", WallaceChangerCV, width = 10, height = 5, units = c("in"))
+
+GadgetChangerCV <- rCV_Change_Master %>% filter(Instrument == "Gadget") %>% ggplot(aes(x=Day, y=`% Change`, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow = 3) +
+  ggtitle("Fortessa-1 Daily % Change in rCV for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) 
+
+
+ggsave("GadgetChangerCV.png", GadgetChangerCV, width = 10, height = 5, units = c("in"))
+
+
+
+GromitChangerCV <- rCV_Change_Master %>% filter(Instrument == "Gromit") %>% ggplot(aes(x=Day, y=`% Change`, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow = 3) +
+  ggtitle("Fortessa-2 Daily % Change in rCV for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) 
+
+
+ggsave("GromitChangerCV.png", GromitChangerCV, width = 10, height = 5, units = c("in"))
+
+
+
+PennyChangerCV <- rCV_Change_Master %>% filter(Instrument == "Penny") %>% ggplot(aes(x=Day, y=`% Change`, group=Method))+
+  geom_line(aes(color=Method))+
+  geom_point(aes(color=Method)) + 
+  facet_wrap(~Fluorochrome, nrow = 3) +
+  ggtitle("Fortessa-3 Daily % Change in rCV for 8 PK RB (Peak 1) and CST")  + theme( axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      axis.text = element_text( size = 12 ),
+           axis.title = element_text( size = 12, face = "bold" ),
+           plot.title = element_text(face = "bold"),
+           strip.text = element_text(size = 14)) 
+
+
+ggsave("PennyChangerCV.png", PennyChangerCV, width = 10, height = 5, units = c("in"))
+```

@@ -1,0 +1,864 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+#WALLACE
+
+
+```{r, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(readr)
+library(plotly)
+library(grid)
+setwd("~/Desktop")
+```
+
+```{r}
+
+Wallace_FlowJo_table <- read_csv("~/Desktop/Wallace FlowJo table 2.csv")
+
+Wallace <- as.data.frame(Wallace_FlowJo_table)
+Wallace <- Wallace %>% select(-contains("Freq"))
+Wallace <- Wallace[-c(6:7),]
+Wallace <- Wallace[,-1]
+
+Wallace[,1:375] <- sapply(Wallace[, 1:375], as.numeric)
+
+Wallace_MFI <- Wallace %>% select(contains("Median"))
+
+
+Wallace_BUV395 <- Wallace %>% select(contains("BUV395"))
+Wallace_BUV395 <- Wallace_BUV395 %>%  select(contains("Median"))
+Wallace_BUV395$`BUV395 Peak 1  Median` <- Wallace_BUV395$`BUV395 Peak 3  Median`
+
+Wallace_MFI$`BUV395 Peak 1  Median` <- Wallace_BUV395$`BUV395 Peak 1  Median`
+
+Wallace_MFI_Peak1 <- Wallace_MFI %>% select(contains("Peak 1"))
+Wallace_MFI_Peak1$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Wallace_MFI_Peak1) <- c("Alexa700", "APC", "APC-Cy7", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "BUV395" , "Date")
+
+Wallace_MFI_Peak1 <- Wallace_MFI_Peak1[,c(19,1:18)]
+
+
+Wallace_MFI_Peak1_Long <- gather(Gromit_MFI_Peak1, Fluorochrome, MFI, 'Alexa700':'BUV395', factor_key=TRUE)
+
+Wallace_MFI_Peak4 <- Wallace_MFI %>% select(contains("Peak 4"))
+Wallace_MFI_Peak4$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+
+colnames(Wallace_MFI_Peak4) <- c("Alexa700", "APC", "APC-Cy7", "BUV395", "BUV496", "BUV737", "BV421", "BV510", "BV605", "BV650", "BV711", "BV786", "FITC", "PE", "PE-CF594", "PE-Cy5", "PE-Cy7", "PerCP-Cy5", "Date")
+
+Wallace_MFI_Peak4 <- Wallace_MFI_Peak4[,c(19,1:18)]
+
+
+Wallace_MFI_Peak4_Long <- gather(Wallace_MFI_Peak4, Fluorochrome, MFI, 'Alexa700':'PerCP-Cy5', factor_key=TRUE)
+
+Wallace_MFI_Peak4_Long <- Wallace_MFI_Peak4_Long %>% filter(Fluorochrome != "BUV395")
+
+Wallace_MFI_Peak4_Long$Difference <- Wallace_MFI_Peak1_Long$MFI - Wallace_MFI_Peak4_Long$MFI
+
+Wallace_MFI_Peak4_Long$'Percent Difference' <- ((Wallace_MFI_Peak1_Long$MFI - Wallace_MFI_Peak4_Long$MFI) / Wallace_MFI_Peak4_Long$MFI) * 100
+
+wallace01 <- ggplot(Wallace_MFI_Peak1_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Wallace: June 14th-18th Peak 1 MFI Data")
+
+wallace01 <- wallace01 + ylim (88000, 105000)
+
+ggsave("wallace01.png", wallace01, width = 10, height = 5, units = c("in"))
+
+Wallace4 <- ggplot(Wallace_MFI_Peak4_Long, aes(x=Date, y=MFI, group=Fluorochrome)) +
+  geom_line(aes(color=Fluorochrome))+
+  geom_point(aes(color=Fluorochrome)) +ggtitle("Wallace: June 14th-18th Peak 4 MFI Data")
+
+
+ggsave("Wallace4.png", Wallace4, width = 10, height = 5, units = c("in"))
+
+
+#Wallace_MFI_Ratios
+
+##Alexa700
+Wallace_Alexa700_2to1 <- Wallace_MFI$`Alexa700 Peak 2  Median`/Wallace_MFI$`Alexa700 Peak 1  Median`
+Wallace_Alexa700_3to2 <- Wallace_MFI$`Alexa700 Peak 3  Median`/Wallace_MFI$`Alexa700 Peak 2  Median`
+Wallace_Alexa700_4to3 <- Wallace_MFI$`Alexa700 Peak 4  Median`/Wallace_MFI$`Alexa700 Peak 3  Median`
+Wallace_Alexa700_5to4 <- Wallace_MFI$`Alexa700 Peak 5  Median`/Wallace_MFI$`Alexa700 Peak 4  Median`
+Wallace_Alexa700_6to5 <- Wallace_MFI$`Alexa700 Peak 6  Median`/Wallace_MFI$`Alexa700 Peak 5  Median`
+Wallace_Alexa700_7to6 <- Wallace_MFI$`Alexa700 Peak 7  Median`/Wallace_MFI$`Alexa700 Peak 6  Median`
+Wallace_Alexa700_8to7 <- Wallace_MFI$`Alexa700 Peak 8  Median`/Wallace_MFI$`Alexa700 Peak 7  Median`
+Wallace_Alexa700_4to1 <- Wallace_MFI$`Alexa700 Peak 4  Median`/Wallace_MFI$`Alexa700 Peak 1  Median`
+Wallace_Alexa700_3to1 <- Wallace_MFI$`Alexa700 Peak 3  Median`/Wallace_MFI$`Alexa700 Peak 1  Median`
+
+Wallace_Alexa700_MFI_Ratio <- data.frame(Wallace_Alexa700_2to1,Wallace_Alexa700_3to2, Wallace_Alexa700_4to3, Wallace_Alexa700_5to4, Wallace_Alexa700_6to5, Wallace_Alexa700_7to6, Wallace_Alexa700_8to7, Wallace_Alexa700_4to1, Wallace_Alexa700_3to1)
+
+colnames(Wallace_Alexa700_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_Alexa700_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_Alexa700_MFI_Ratio_LONG <- gather(Wallace_Alexa700_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_Alexa700_MFI_Ratio_LONG$Fluorochrome <- "Alexa700"
+
+##APC
+Wallace_APC_2to1 <- Wallace_MFI$`APC Peak 2  Median`/Wallace_MFI$`APC Peak 1  Median`
+Wallace_APC_3to2 <- Wallace_MFI$`APC Peak 3  Median`/Wallace_MFI$`APC Peak 2  Median`
+Wallace_APC_4to3 <- Wallace_MFI$`APC Peak 4  Median`/Wallace_MFI$`APC Peak 3  Median`
+Wallace_APC_5to4 <- Wallace_MFI$`APC Peak 5  Median`/Wallace_MFI$`APC Peak 4  Median`
+Wallace_APC_6to5 <- Wallace_MFI$`APC Peak 6  Median`/Wallace_MFI$`APC Peak 5  Median`
+Wallace_APC_7to6 <- Wallace_MFI$`APC Peak 7  Median`/Wallace_MFI$`APC Peak 6  Median`
+Wallace_APC_8to7 <- Wallace_MFI$`APC Peak 8  Median`/Wallace_MFI$`APC Peak 7  Median`
+Wallace_APC_4to1 <- Wallace_MFI$`APC Peak 4  Median`/Wallace_MFI$`APC Peak 1  Median`
+Wallace_APC_3to1 <- Wallace_MFI$`APC Peak 3  Median`/Wallace_MFI$`APC Peak 1  Median`
+
+
+Wallace_APC_MFI_Ratio <- data.frame(Wallace_APC_2to1,Wallace_APC_3to2, Wallace_APC_4to3, Wallace_APC_5to4, Wallace_APC_6to5, Wallace_APC_7to6, Wallace_APC_8to7, Wallace_APC_4to1,Wallace_APC_3to1)
+
+colnames(Wallace_APC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_APC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_APC_MFI_Ratio_LONG <- gather(Wallace_APC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_APC_MFI_Ratio_LONG$Fluorochrome <- "APC"
+
+##APC-Cy7
+Wallace_APC_Cy7_2to1 <- c(Wallace_MFI$`APC-Cy7 Peak 2  Median`/Wallace_MFI$`APC-Cy7 Peak 1  Median`)
+Wallace_APC_Cy7_3to2 <- Wallace_MFI$`APC-Cy7 Peak 3  Median`/Wallace_MFI$`APC-Cy7 Peak 2  Median`
+Wallace_APC_Cy7_4to3 <- Wallace_MFI$`APC-Cy7 Peak 4  Median`/Wallace_MFI$`APC-Cy7 Peak 3  Median`
+Wallace_APC_Cy7_5to4 <- Wallace_MFI$`APC-Cy7 Peak 5  Median`/Wallace_MFI$`APC-Cy7 Peak 4  Median`
+Wallace_APC_Cy7_6to5 <- Wallace_MFI$`APC-Cy7 Peak 6  Median`/Wallace_MFI$`APC-Cy7 Peak 5  Median`
+Wallace_APC_Cy7_7to6 <- Wallace_MFI$`APC-Cy7 Peak 7  Median`/Wallace_MFI$`APC-Cy7 Peak 6  Median`
+Wallace_APC_Cy7_8to7 <- NA
+Wallace_APC_Cy7_4to1 <- c(Wallace_MFI$`APC-Cy7 Peak 4  Median`/Wallace_MFI$`APC-Cy7 Peak 1  Median`)
+Wallace_APC_Cy7_3to1 <- c(Wallace_MFI$`APC-Cy7 Peak 3  Median`/Wallace_MFI$`APC-Cy7 Peak 1  Median`)
+
+
+Wallace_APC_Cy7_MFI_Ratio <- data.frame(Wallace_APC_Cy7_2to1,Wallace_APC_Cy7_3to2, Wallace_APC_Cy7_4to3, Wallace_APC_Cy7_5to4, Wallace_APC_Cy7_6to5, Wallace_APC_Cy7_7to6, Wallace_APC_Cy7_8to7, Wallace_APC_Cy7_4to1 ,Wallace_APC_Cy7_3to1 )
+
+colnames(Wallace_APC_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_APC_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_APC_Cy7_MFI_Ratio_LONG <- gather(Wallace_APC_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_APC_Cy7_MFI_Ratio_LONG$Fluorochrome <- "APC-Cy7"
+
+##BUV395
+
+Wallace_BUV395_2to1 <- NA
+Wallace_BUV395_3to2 <- Wallace_MFI$`BUV395 Peak 3  Median`/Wallace_MFI$`BUV395 Peak 2  Median`
+Wallace_BUV395_4to3 <- Wallace_MFI$`BUV395 Peak 4  Median`/Wallace_MFI$`BUV395 Peak 3  Median`
+Wallace_BUV395_5to4 <- Wallace_MFI$`BUV395 Peak 5  Median`/Wallace_MFI$`BUV395 Peak 4  Median`
+Wallace_BUV395_6to5 <- Wallace_MFI$`BUV395 Peak 6  Median`/Wallace_MFI$`BUV395 Peak 5  Median`
+Wallace_BUV395_7to6 <- Wallace_MFI$`BUV395 Peak 7  Median`/Wallace_MFI$`BUV395 Peak 6  Median`
+Wallace_BUV395_8to7 <- Wallace_MFI$`BUV395 Peak 8  Median`/Wallace_MFI$`BUV395 Peak 7  Median`
+Wallace_BUV395_4to1 <- NA
+Wallace_BUV395_3to1 <- NA
+
+Wallace_BUV395_MFI_Ratio <- data.frame(Wallace_BUV395_2to1,Wallace_BUV395_3to2, Wallace_BUV395_4to3, Wallace_BUV395_5to4, Wallace_BUV395_6to5, Wallace_BUV395_7to6, Wallace_BUV395_8to7, Wallace_BUV395_4to1, Wallace_BUV395_3to1)
+
+colnames(Wallace_BUV395_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BUV395_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BUV395_MFI_Ratio_LONG <- gather(Wallace_BUV395_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BUV395_MFI_Ratio_LONG$Fluorochrome <- "BUV395"
+
+##BUV496
+
+Wallace_BUV496_2to1 <- Wallace_MFI$`BUV496 Peak 2  Median`/Wallace_MFI$`BUV496 Peak 1  Median`
+Wallace_BUV496_3to2 <- Wallace_MFI$`BUV496 Peak 3  Median`/Wallace_MFI$`BUV496 Peak 2  Median`
+Wallace_BUV496_4to3 <- Wallace_MFI$`BUV496 Peak 4  Median`/Wallace_MFI$`BUV496 Peak 3  Median`
+Wallace_BUV496_5to4 <- Wallace_MFI$`BUV496 Peak 5  Median`/Wallace_MFI$`BUV496 Peak 4  Median`
+Wallace_BUV496_6to5 <- Wallace_MFI$`BUV496 Peak 6  Median`/Wallace_MFI$`BUV496 Peak 5  Median`
+Wallace_BUV496_7to6 <- Wallace_MFI$`BUV496 Peak 7  Median`/Wallace_MFI$`BUV496 Peak 6  Median`
+Wallace_BUV496_8to7 <- Wallace_MFI$`BUV496 Peak 8  Median`/Wallace_MFI$`BUV496 Peak 7  Median`
+Wallace_BUV496_4to1 <- Wallace_MFI$`BUV496 Peak 4  Median`/Wallace_MFI$`BUV496 Peak 1  Median`
+Wallace_BUV496_3to1 <- Wallace_MFI$`BUV496 Peak 3  Median`/Wallace_MFI$`BUV496 Peak 1  Median`
+
+
+
+Wallace_BUV496_MFI_Ratio <- data.frame(Wallace_BUV496_2to1,Wallace_BUV496_3to2, Wallace_BUV496_4to3, Wallace_BUV496_5to4, Wallace_BUV496_6to5, Wallace_BUV496_7to6, Wallace_BUV496_8to7, Wallace_BUV496_4to1, Wallace_BUV496_3to1)
+
+colnames(Wallace_BUV496_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BUV496_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BUV496_MFI_Ratio_LONG <- gather(Wallace_BUV496_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BUV496_MFI_Ratio_LONG$Fluorochrome <- "BUV496"
+
+
+##BUV737
+
+Wallace_BUV737_2to1 <- Wallace_MFI$`BUV737 Peak 2  Median`/Wallace_MFI$`BUV737 Peak 1  Median`
+Wallace_BUV737_3to2 <- Wallace_MFI$`BUV737 Peak 3  Median`/Wallace_MFI$`BUV737 Peak 2  Median`
+Wallace_BUV737_4to3 <- Wallace_MFI$`BUV737 Peak 4  Median`/Wallace_MFI$`BUV737 Peak 3  Median`
+Wallace_BUV737_5to4 <- Wallace_MFI$`BUV737 Peak 5  Median`/Wallace_MFI$`BUV737 Peak 4  Median`
+Wallace_BUV737_6to5 <- NA
+Wallace_BUV737_7to6 <- NA
+Wallace_BUV737_8to7 <- NA
+Wallace_BUV737_4to1 <- Wallace_MFI$`BUV737 Peak 4  Median`/Wallace_MFI$`BUV737 Peak 1  Median`
+Wallace_BUV737_3to1 <- Wallace_MFI$`BUV737 Peak 3  Median`/Wallace_MFI$`BUV737 Peak 1  Median`
+
+
+Wallace_BUV737_MFI_Ratio <- data.frame(Wallace_BUV737_2to1,Wallace_BUV737_3to2, Wallace_BUV737_4to3, Wallace_BUV737_5to4, Wallace_BUV737_6to5, Wallace_BUV737_7to6, Wallace_BUV737_8to7, Wallace_BUV737_4to1, Wallace_BUV737_3to1)
+
+colnames(Wallace_BUV737_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BUV737_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BUV737_MFI_Ratio_LONG <- gather(Wallace_BUV737_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BUV737_MFI_Ratio_LONG$Fluorochrome <- "BUV737"
+
+
+##BV421
+
+Wallace_BV421_2to1 <- Wallace_MFI$`BV421 Peak 2  Median`/Wallace_MFI$`BV421 Peak 1  Median`
+Wallace_BV421_3to2 <- Wallace_MFI$`BV421 Peak 3  Median`/Wallace_MFI$`BV421 Peak 2  Median`
+Wallace_BV421_4to3 <- Wallace_MFI$`BV421 Peak 4  Median`/Wallace_MFI$`BV421 Peak 3  Median`
+Wallace_BV421_5to4 <- Wallace_MFI$`BV421 Peak 5  Median`/Wallace_MFI$`BV421 Peak 4  Median`
+Wallace_BV421_6to5 <- Wallace_MFI$`BV421 Peak 6  Median`/Wallace_MFI$`BV421 Peak 5  Median`
+Wallace_BV421_7to6 <- Wallace_MFI$`BV421 Peak 7  Median`/Wallace_MFI$`BV421 Peak 6  Median`
+Wallace_BV421_8to7 <- Wallace_MFI$`BV421 Peak 8  Median`/Wallace_MFI$`BV421 Peak 7  Median`
+Wallace_BV421_4to1 <- Wallace_MFI$`BV421 Peak 4  Median`/Wallace_MFI$`BV421 Peak 1  Median`
+Wallace_BV421_3to1 <- Wallace_MFI$`BV421 Peak 3  Median`/Wallace_MFI$`BV421 Peak 1  Median`
+
+Wallace_BV421_MFI_Ratio <- data.frame(Wallace_BV421_2to1,Wallace_BV421_3to2, Wallace_BV421_4to3, Wallace_BV421_5to4, Wallace_BV421_6to5, Wallace_BV421_7to6, Wallace_BV421_8to7, Wallace_BV421_4to1, Wallace_BV421_3to1)
+
+colnames(Wallace_BV421_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV421_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV421_MFI_Ratio_LONG <- gather(Wallace_BV421_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV421_MFI_Ratio_LONG$Fluorochrome <- "BV421"
+
+
+##BV510
+
+Wallace_BV510_2to1 <- Wallace_MFI$`BV510 Peak 2  Median`/Wallace_MFI$`BV510 Peak 1  Median`
+Wallace_BV510_3to2 <- Wallace_MFI$`BV510 Peak 3  Median`/Wallace_MFI$`BV510 Peak 2  Median`
+Wallace_BV510_4to3 <- Wallace_MFI$`BV510 Peak 4  Median`/Wallace_MFI$`BV510 Peak 3  Median`
+Wallace_BV510_5to4 <- Wallace_MFI$`BV510 Peak 5  Median`/Wallace_MFI$`BV510 Peak 4  Median`
+Wallace_BV510_6to5 <- Wallace_MFI$`BV510 Peak 6  Median`/Wallace_MFI$`BV510 Peak 5  Median`
+Wallace_BV510_7to6 <- Wallace_MFI$`BV510 Peak 7  Median`/Wallace_MFI$`BV510 Peak 6  Median`
+Wallace_BV510_8to7 <- Wallace_MFI$`BV510 Peak 8  Median`/Wallace_MFI$`BV510 Peak 7  Median`
+Wallace_BV510_4to1 <- Wallace_MFI$`BV510 Peak 4  Median`/Wallace_MFI$`BV510 Peak 1  Median`
+Wallace_BV510_3to1 <- Wallace_MFI$`BV510 Peak 3  Median`/Wallace_MFI$`BV510 Peak 1  Median`
+
+
+Wallace_BV510_MFI_Ratio <- data.frame(Wallace_BV510_2to1,Wallace_BV510_3to2, Wallace_BV510_4to3, Wallace_BV510_5to4, Wallace_BV510_6to5, Wallace_BV510_7to6, Wallace_BV510_8to7, Wallace_BV510_4to1, Wallace_BV510_3to1)
+
+colnames(Wallace_BV510_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV510_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV510_MFI_Ratio_LONG <- gather(Wallace_BV510_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV510_MFI_Ratio_LONG$Fluorochrome <- "BV510"
+
+
+##BV605
+
+Wallace_BV605_2to1 <- Wallace_MFI$`BV605 Peak 2  Median`/Wallace_MFI$`BV605 Peak 1  Median`
+Wallace_BV605_3to2 <- Wallace_MFI$`BV605 Peak 3  Median`/Wallace_MFI$`BV605 Peak 2  Median`
+Wallace_BV605_4to3 <- Wallace_MFI$`BV605 Peak 4  Median`/Wallace_MFI$`BV605 Peak 3  Median`
+Wallace_BV605_5to4 <- Wallace_MFI$`BV605 Peak 5  Median`/Wallace_MFI$`BV605 Peak 4  Median`
+Wallace_BV605_6to5 <- Wallace_MFI$`BV605 Peak 6  Median`/Wallace_MFI$`BV605 Peak 5  Median`
+Wallace_BV605_7to6 <- NA
+Wallace_BV605_8to7 <- NA
+Wallace_BV605_4to1 <- Wallace_MFI$`BV605 Peak 4  Median`/Wallace_MFI$`BV605 Peak 1  Median`
+Wallace_BV605_3to1 <- Wallace_MFI$`BV605 Peak 3  Median`/Wallace_MFI$`BV605 Peak 1  Median`
+
+
+
+Wallace_BV605_MFI_Ratio <- data.frame(Wallace_BV605_2to1,Wallace_BV605_3to2, Wallace_BV605_4to3, Wallace_BV605_5to4, Wallace_BV605_6to5, Wallace_BV605_7to6, Wallace_BV605_8to7, Wallace_BV605_4to1, Wallace_BV605_3to1)
+
+colnames(Wallace_BV605_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV605_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV605_MFI_Ratio_LONG <- gather(Wallace_BV605_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV605_MFI_Ratio_LONG$Fluorochrome <- "BV605"
+
+
+##BV650
+
+Wallace_BV650_2to1 <- Wallace_MFI$`BV650 Peak 2  Median`/Wallace_MFI$`BV650 Peak 1  Median`
+Wallace_BV650_3to2 <- Wallace_MFI$`BV650 Peak 3  Median`/Wallace_MFI$`BV650 Peak 2  Median`
+Wallace_BV650_4to3 <- Wallace_MFI$`BV650 Peak 4  Median`/Wallace_MFI$`BV650 Peak 3  Median`
+Wallace_BV650_5to4 <- Wallace_MFI$`BV650 Peak 5  Median`/Wallace_MFI$`BV650 Peak 4  Median`
+Wallace_BV650_6to5 <- NA
+Wallace_BV650_7to6 <- NA
+Wallace_BV650_8to7 <- NA
+Wallace_BV650_4to1 <- Wallace_MFI$`BV650 Peak 4  Median`/Wallace_MFI$`BV650 Peak 1  Median`
+Wallace_BV650_3to1 <- Wallace_MFI$`BV650 Peak 3  Median`/Wallace_MFI$`BV650 Peak 1  Median`
+
+
+
+Wallace_BV650_MFI_Ratio <- data.frame(Wallace_BV650_2to1,Wallace_BV650_3to2, Wallace_BV650_4to3, Wallace_BV650_5to4, Wallace_BV650_6to5, Wallace_BV650_7to6, Wallace_BV650_8to7, Wallace_BV650_4to1 ,Wallace_BV650_3to1 )
+
+colnames(Wallace_BV650_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV650_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV650_MFI_Ratio_LONG <- gather(Wallace_BV650_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV650_MFI_Ratio_LONG$Fluorochrome <- "BV650"
+
+
+
+##BV711
+
+Wallace_BV711_2to1 <- Wallace_MFI$`BV711 Peak 2  Median`/Wallace_MFI$`BV711 Peak 1  Median`
+Wallace_BV711_3to2 <- Wallace_MFI$`BV711 Peak 3  Median`/Wallace_MFI$`BV711 Peak 2  Median`
+Wallace_BV711_4to3 <- Wallace_MFI$`BV711 Peak 4  Median`/Wallace_MFI$`BV711 Peak 3  Median`
+Wallace_BV711_5to4 <- Wallace_MFI$`BV711 Peak 5  Median`/Wallace_MFI$`BV711 Peak 4  Median`
+Wallace_BV711_6to5 <- NA
+Wallace_BV711_7to6 <- NA
+Wallace_BV711_8to7 <- NA
+Wallace_BV711_4to1 <- Wallace_MFI$`BV711 Peak 4  Median`/Wallace_MFI$`BV711 Peak 1  Median`
+Wallace_BV711_3to1 <- Wallace_MFI$`BV711 Peak 3  Median`/Wallace_MFI$`BV711 Peak 1  Median`
+
+
+Wallace_BV711_MFI_Ratio <- data.frame(Wallace_BV711_2to1,Wallace_BV711_3to2, Wallace_BV711_4to3, Wallace_BV711_5to4, Wallace_BV711_6to5, Wallace_BV711_7to6, Wallace_BV711_8to7, Wallace_BV711_4to1, Wallace_BV711_3to1)
+
+colnames(Wallace_BV711_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV711_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV711_MFI_Ratio_LONG <- gather(Wallace_BV711_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV711_MFI_Ratio_LONG$Fluorochrome <- "BV711"
+
+
+##BV786
+
+Wallace_BV786_2to1 <- Wallace_MFI$`BV786 Peak 2  Median`/Wallace_MFI$`BV786 Peak 1  Median`
+Wallace_BV786_3to2 <- Wallace_MFI$`BV786 Peak 3  Median`/Wallace_MFI$`BV786 Peak 2  Median`
+Wallace_BV786_4to3 <- Wallace_MFI$`BV786 Peak 4  Median`/Wallace_MFI$`BV786 Peak 3  Median`
+Wallace_BV786_5to4 <- NA
+Wallace_BV786_6to5 <- NA
+Wallace_BV786_7to6 <- NA
+Wallace_BV786_8to7 <- NA
+Wallace_BV786_4to1 <- Wallace_MFI$`BV786 Peak 4  Median`/Wallace_MFI$`BV786 Peak 1  Median`
+Wallace_BV786_3to1 <- Wallace_MFI$`BV786 Peak 3  Median`/Wallace_MFI$`BV786 Peak 1  Median`
+
+Wallace_BV786_MFI_Ratio <- data.frame(Wallace_BV786_2to1,Wallace_BV786_3to2, Wallace_BV786_4to3, Wallace_BV786_5to4, Wallace_BV786_6to5, Wallace_BV786_7to6, Wallace_BV786_8to7, Wallace_BV786_4to1 ,Wallace_BV786_3to1 )
+
+colnames(Wallace_BV786_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_BV786_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_BV786_MFI_Ratio_LONG <- gather(Wallace_BV786_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_BV786_MFI_Ratio_LONG$Fluorochrome <- "BV786"
+
+
+##FITC
+
+Wallace_FITC_2to1 <- Wallace_MFI$`FITC Peak 2  Median`/Wallace_MFI$`FITC Peak 1  Median`
+Wallace_FITC_3to2 <- Wallace_MFI$`FITC Peak 3  Median`/Wallace_MFI$`FITC Peak 2  Median`
+Wallace_FITC_4to3 <- Wallace_MFI$`FITC Peak 4  Median`/Wallace_MFI$`FITC Peak 3  Median`
+Wallace_FITC_5to4 <- Wallace_MFI$`FITC Peak 5  Median`/Wallace_MFI$`FITC Peak 4  Median`
+Wallace_FITC_6to5 <- Wallace_MFI$`FITC Peak 6  Median`/Wallace_MFI$`FITC Peak 5  Median`
+Wallace_FITC_7to6 <- Wallace_MFI$`FITC Peak 7  Median`/Wallace_MFI$`FITC Peak 6  Median`
+Wallace_FITC_8to7 <- Wallace_MFI$`FITC Peak 8  Median`/Wallace_MFI$`FITC Peak 7  Median`
+Wallace_FITC_4to1 <- Wallace_MFI$`FITC Peak 4  Median`/Wallace_MFI$`FITC Peak 1  Median`
+Wallace_FITC_3to1 <- Wallace_MFI$`FITC Peak 3  Median`/Wallace_MFI$`FITC Peak 1  Median`
+
+Wallace_FITC_MFI_Ratio <- data.frame(Wallace_FITC_2to1,Wallace_FITC_3to2, Wallace_FITC_4to3, Wallace_FITC_5to4, Wallace_FITC_6to5, Wallace_FITC_7to6, Wallace_FITC_8to7, Wallace_FITC_4to1, Wallace_FITC_3to1)
+
+colnames(Wallace_FITC_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_FITC_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_FITC_MFI_Ratio_LONG <- gather(Wallace_FITC_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_FITC_MFI_Ratio_LONG$Fluorochrome <- "FITC"
+
+
+##PE
+
+Wallace_PE_2to1 <- Wallace_MFI$`PE Peak 2  Median`/Wallace_MFI$`PE Peak 1  Median`
+Wallace_PE_3to2 <- Wallace_MFI$`PE Peak 3  Median`/Wallace_MFI$`PE Peak 2  Median`
+Wallace_PE_4to3 <- Wallace_MFI$`PE Peak 4  Median`/Wallace_MFI$`PE Peak 3  Median`
+Wallace_PE_5to4 <- Wallace_MFI$`PE Peak 5  Median`/Wallace_MFI$`PE Peak 4  Median`
+Wallace_PE_6to5 <- Wallace_MFI$`PE Peak 6  Median`/Wallace_MFI$`PE Peak 5  Median`
+Wallace_PE_7to6 <- Wallace_MFI$`PE Peak 7  Median`/Wallace_MFI$`PE Peak 6  Median`
+Wallace_PE_8to7 <- Wallace_MFI$`PE Peak 8  Median`/Wallace_MFI$`PE Peak 7  Median`
+Wallace_PE_4to1 <- Wallace_MFI$`PE Peak 4  Median`/Wallace_MFI$`PE Peak 1  Median`
+Wallace_PE_3to1 <- Wallace_MFI$`PE Peak 3  Median`/Wallace_MFI$`PE Peak 1  Median`
+
+Wallace_PE_MFI_Ratio <- data.frame(Wallace_PE_2to1,Wallace_PE_3to2, Wallace_PE_4to3, Wallace_PE_5to4, Wallace_PE_6to5, Wallace_PE_7to6, Wallace_PE_8to7, Wallace_PE_4to1, Wallace_PE_3to1)
+
+colnames(Wallace_PE_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_PE_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PE_MFI_Ratio_LONG <- gather(Wallace_PE_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_PE_MFI_Ratio_LONG$Fluorochrome <- "PE"
+
+##PE-CF594
+
+Wallace_PE_CF594_2to1 <- Wallace_MFI$`PE-CF594 Peak 2  Median`/Wallace_MFI$`PE-CF594 Peak 1  Median`
+Wallace_PE_CF594_3to2 <- Wallace_MFI$`PE-CF594 Peak 3  Median`/Wallace_MFI$`PE-CF594 Peak 2  Median`
+Wallace_PE_CF594_4to3 <- Wallace_MFI$`PE-CF594 Peak 4  Median`/Wallace_MFI$`PE-CF594 Peak 3  Median`
+Wallace_PE_CF594_5to4 <- Wallace_MFI$`PE-CF594 Peak 5  Median`/Wallace_MFI$`PE-CF594 Peak 4  Median`
+Wallace_PE_CF594_6to5 <- Wallace_MFI$`PE-CF594 Peak 6  Median`/Wallace_MFI$`PE-CF594 Peak 5  Median`
+Wallace_PE_CF594_7to6 <- Wallace_MFI$`PE-CF594 Peak 7  Median`/Wallace_MFI$`PE-CF594 Peak 6  Median`
+Wallace_PE_CF594_8to7 <- Wallace_MFI$`PE-CF594 Peak 8  Median`/Wallace_MFI$`PE-CF594 Peak 7  Median`
+Wallace_PE_CF594_4to1 <- Wallace_MFI$`PE-CF594 Peak 4  Median`/Wallace_MFI$`PE-CF594 Peak 1  Median`
+Wallace_PE_CF594_3to1 <- Wallace_MFI$`PE-CF594 Peak 3  Median`/Wallace_MFI$`PE-CF594 Peak 1  Median`
+
+
+Wallace_PE_CF594_MFI_Ratio <- data.frame(Wallace_PE_CF594_2to1,Wallace_PE_CF594_3to2, Wallace_PE_CF594_4to3, Wallace_PE_CF594_5to4, Wallace_PE_CF594_6to5, Wallace_PE_CF594_7to6, Wallace_PE_CF594_8to7, Wallace_PE_CF594_4to1 ,Wallace_PE_CF594_3to1 )
+
+colnames(Wallace_PE_CF594_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_PE_CF594_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PE_CF594_MFI_Ratio_LONG <- gather(Wallace_PE_CF594_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_PE_CF594_MFI_Ratio_LONG$Fluorochrome <- "PE-CF594"
+
+
+##PE-Cy5
+
+Wallace_PE_Cy5_2to1 <- Wallace_MFI$`PE-Cy5 Peak 2  Median`/Wallace_MFI$`PE-Cy5 Peak 1  Median`
+Wallace_PE_Cy5_3to2 <- Wallace_MFI$`PE-Cy5 Peak 3  Median`/Wallace_MFI$`PE-Cy5 Peak 2  Median`
+Wallace_PE_Cy5_4to3 <- Wallace_MFI$`PE-Cy5 Peak 4  Median`/Wallace_MFI$`PE-Cy5 Peak 3  Median`
+Wallace_PE_Cy5_5to4 <- Wallace_MFI$`PE-Cy5 Peak 5  Median`/Wallace_MFI$`PE-Cy5 Peak 4  Median`
+Wallace_PE_Cy5_6to5 <- Wallace_MFI$`PE-Cy5 Peak 6  Median`/Wallace_MFI$`PE-Cy5 Peak 5  Median`
+Wallace_PE_Cy5_7to6 <- Wallace_MFI$`PE-Cy5 Peak 7  Median`/Wallace_MFI$`PE-Cy5 Peak 6  Median`
+Wallace_PE_Cy5_8to7 <- Wallace_MFI$`PE-Cy5 Peak 8  Median`/Wallace_MFI$`PE-Cy5 Peak 7  Median`
+Wallace_PE_Cy5_4to1 <- Wallace_MFI$`PE-Cy5 Peak 4  Median`/Wallace_MFI$`PE-Cy5 Peak 1  Median`
+Wallace_PE_Cy5_3to1 <- Wallace_MFI$`PE-Cy5 Peak 3  Median`/Wallace_MFI$`PE-Cy5 Peak 1  Median`
+
+Wallace_PE_Cy5_MFI_Ratio <- data.frame(Wallace_PE_Cy5_2to1,Wallace_PE_Cy5_3to2, Wallace_PE_Cy5_4to3, Wallace_PE_Cy5_5to4, Wallace_PE_Cy5_6to5, Wallace_PE_Cy5_7to6, Wallace_PE_Cy5_8to7, Wallace_PE_Cy5_4to1, Wallace_PE_Cy5_3to1)
+
+colnames(Wallace_PE_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_PE_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PE_Cy5_MFI_Ratio_LONG <- gather(Wallace_PE_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_PE_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy5"
+
+
+##PE-Cy7
+
+Wallace_PE_Cy7_2to1 <- Wallace_MFI$`PE-Cy7 Peak 2  Median`/Wallace_MFI$`PE-Cy7 Peak 1  Median`
+Wallace_PE_Cy7_3to2 <- Wallace_MFI$`PE-Cy7 Peak 3  Median`/Wallace_MFI$`PE-Cy7 Peak 2  Median`
+Wallace_PE_Cy7_4to3 <- Wallace_MFI$`PE-Cy7 Peak 4  Median`/Wallace_MFI$`PE-Cy7 Peak 3  Median`
+Wallace_PE_Cy7_5to4 <- Wallace_MFI$`PE-Cy7 Peak 5  Median`/Wallace_MFI$`PE-Cy7 Peak 4  Median`
+Wallace_PE_Cy7_6to5 <- Wallace_MFI$`PE-Cy7 Peak 6  Median`/Wallace_MFI$`PE-Cy7 Peak 5  Median`
+Wallace_PE_Cy7_7to6 <- NA
+Wallace_PE_Cy7_8to7 <- NA
+Wallace_PE_Cy7_4to1 <- Wallace_MFI$`PE-Cy7 Peak 4  Median`/Wallace_MFI$`PE-Cy7 Peak 1  Median`
+Wallace_PE_Cy7_3to1 <- Wallace_MFI$`PE-Cy7 Peak 3  Median`/Wallace_MFI$`PE-Cy7 Peak 1  Median`
+
+Wallace_PE_Cy7_MFI_Ratio <- data.frame(Wallace_PE_Cy7_2to1,Wallace_PE_Cy7_3to2, Wallace_PE_Cy7_4to3, Wallace_PE_Cy7_5to4, Wallace_PE_Cy7_6to5, Wallace_PE_Cy7_7to6, Wallace_PE_Cy7_8to7, Wallace_PE_Cy7_4to1, Wallace_PE_Cy7_3to1)
+
+colnames(Wallace_PE_Cy7_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_PE_Cy7_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PE_Cy7_MFI_Ratio_LONG <- gather(Wallace_PE_Cy7_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_PE_Cy7_MFI_Ratio_LONG$Fluorochrome <- "PE-Cy7"
+
+
+##PerCP-Cy5
+
+Wallace_PerCP_Cy5_2to1 <- Wallace_MFI$`PerCP-Cy5 Peak 2  Median`/Wallace_MFI$`PerCP-Cy5 Peak 1  Median`
+Wallace_PerCP_Cy5_3to2 <- Wallace_MFI$`PerCP-Cy5 Peak 3  Median`/Wallace_MFI$`PerCP-Cy5 Peak 2  Median`
+Wallace_PerCP_Cy5_4to3 <- Wallace_MFI$`PerCP-Cy5 Peak 4  Median`/Wallace_MFI$`PerCP-Cy5 Peak 3  Median`
+Wallace_PerCP_Cy5_5to4 <- Wallace_MFI$`PerCP-Cy5 Peak 5  Median`/Wallace_MFI$`PerCP-Cy5 Peak 4  Median`
+Wallace_PerCP_Cy5_6to5 <- Wallace_MFI$`PerCP-Cy5 Peak 6  Median`/Wallace_MFI$`PerCP-Cy5 Peak 5  Median`
+Wallace_PerCP_Cy5_7to6 <- Wallace_MFI$`PerCP-Cy5 Peak 7  Median`/Wallace_MFI$`PerCP-Cy5 Peak 6  Median`
+Wallace_PerCP_Cy5_8to7 <- NA
+Wallace_PerCP_Cy5_4to1 <- Wallace_MFI$`PerCP-Cy5 Peak 4  Median`/Wallace_MFI$`PerCP-Cy5 Peak 1  Median`
+Wallace_PerCP_Cy5_3to1 <- Wallace_MFI$`PerCP-Cy5 Peak 3  Median`/Wallace_MFI$`PerCP-Cy5 Peak 1  Median`
+
+Wallace_PerCP_Cy5_MFI_Ratio <- data.frame(Wallace_PerCP_Cy5_2to1,Wallace_PerCP_Cy5_3to2, Wallace_PerCP_Cy5_4to3, Wallace_PerCP_Cy5_5to4, Wallace_PerCP_Cy5_6to5, Wallace_PerCP_Cy5_7to6, Wallace_PerCP_Cy5_8to7, Wallace_PerCP_Cy5_4to1, Wallace_PerCP_Cy5_3to1)
+
+colnames(Wallace_PerCP_Cy5_MFI_Ratio) <- c('2:1', "3:2", "4:3", "5:4", "6:5", "7:6", "8:7", "4:1", "3:1")
+Wallace_PerCP_Cy5_MFI_Ratio$Date <- c("06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PerCP_Cy5_MFI_Ratio_LONG <- gather(Wallace_PerCP_Cy5_MFI_Ratio, Peak, Ratio, "2:1":"3:1", factor_key=TRUE)
+Wallace_PerCP_Cy5_MFI_Ratio_LONG$Fluorochrome <- "PerCP-Cy5"
+
+
+#Wallace_MFI_Ratios Data Frame
+
+
+Wallace_MFI_Ratios <- rbind(Wallace_Alexa700_MFI_Ratio_LONG, 
+                           Wallace_APC_Cy7_MFI_Ratio_LONG, 
+                           Wallace_APC_MFI_Ratio_LONG, 
+                           Wallace_BUV395_MFI_Ratio_LONG,
+                           Wallace_BUV496_MFI_Ratio_LONG,
+                           Wallace_BUV737_MFI_Ratio_LONG,
+                           Wallace_BV421_MFI_Ratio_LONG,
+                           Wallace_BV510_MFI_Ratio_LONG,
+                           Wallace_BV605_MFI_Ratio_LONG,
+                           Wallace_BV650_MFI_Ratio_LONG,
+                           Wallace_BV711_MFI_Ratio_LONG,
+                           Wallace_BV786_MFI_Ratio_LONG,
+                           Wallace_FITC_MFI_Ratio_LONG,
+                           Wallace_PE_MFI_Ratio_LONG,
+                           Wallace_PE_CF594_MFI_Ratio_LONG,
+                           Wallace_PE_Cy5_MFI_Ratio_LONG,
+                           Wallace_PE_Cy7_MFI_Ratio_LONG,
+                           Wallace_PerCP_Cy5_MFI_Ratio_LONG)
+
+
+Wallace_MFI_PLOT1 <- ggplot(Wallace_MFI_Ratios, aes(x=Fluorochrome, y=Ratio, color=Peak)) + geom_point() + ggtitle('Ratio of Peaks by Fluorochrome (Wallace)') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave('wallace1.png',Wallace_MFI_PLOT1,  width = 10, height = 5, units = c("in"))
+
+
+Wallace_MFI_PLOT2 <- ggplot(Wallace_MFI_Ratios, aes(x=Peak, y=Ratio)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=6) + ggtitle("Wallace: Variation in Peak Separation (06/14 to 06/18)")
+
+Wallace_MFI_PLOT2 
+
+ggsave('Wallace_MFI_PLOT2.png',Wallace_MFI_PLOT2,  width = 10, height = 5, units = c("in"))
+
+# MFI DIFFERENCE FROM BASELINE
+
+Wallace_MFI_Day2_Change <- Wallace_MFI[2,]-Wallace_MFI[1,]
+Wallace_MFI_Day3_Change <- Wallace_MFI[3,]-Wallace_MFI[1,]
+Wallace_MFI_Day4_Change <- Wallace_MFI[4,]-Wallace_MFI[1,]
+Wallace_MFI_Day5_Change <- Wallace_MFI[5,]-Wallace_MFI[1,]
+
+Wallace_MFI_Difference <- rbind(Wallace_MFI_Day2_Change,Wallace_MFI_Day3_Change,Wallace_MFI_Day4_Change,Wallace_MFI_Day5_Change)
+
+Wallace_MFI_Difference$Day <- c("06/15", "06/16", "07/17", "06/18")
+
+Wallace_MFI_Difference_LONG <- gather(Wallace_MFI_Difference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Wallace_MFI_Difference_LONG <- separate(data = Wallace_MFI_Difference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Wallace_MFI_Difference_LONG$Peak<-gsub("Median","",as.character(Wallace_MFI_Difference_LONG$Peak))
+
+Wallace_MFI_PLOT3 <- ggplot(Wallace_MFI_Difference_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Wallace: MFI Difference  from Baseline by Fluorochrome') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave('Wallace_MFI_PLOT3.png',Wallace_MFI_PLOT3,  width = 10, height = 5, units = c("in"))
+
+
+Wallace_MFI_PLOT4 <-ggplot(Wallace_MFI_Difference_LONG, aes(x=Peak, y=Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=5) + ggtitle('Wallace: Distribution of MFI Difference from Baseline (06/14 to 06/18)') + scale_y_continuous(breaks=seq(-5000,5000,1000))
+
+ggsave('Wallace_MFI_PLOT4.png',Wallace_MFI_PLOT4,  width = 10, height = 5, units = c("in"))
+
+```
+
+
+Day to Day Variation
+
+```{r}
+
+Wallace_MFI_Day2D_Change <- Wallace_MFI[2,]-Wallace_MFI[1,]
+Wallace_MFI_Day3D_Change <- Wallace_MFI[3,]-Wallace_MFI[2,]
+Wallace_MFI_Day4D_Change <- Wallace_MFI[4,]-Wallace_MFI[3,]
+Wallace_MFI_Day5D_Change <- Wallace_MFI[5,]-Wallace_MFI[4,]
+
+
+Wallace_MFI_DifferenceDD <- rbind(Wallace_MFI_Day2D_Change,Wallace_MFI_Day3D_Change,Wallace_MFI_Day4D_Change,Wallace_MFI_Day5D_Change)
+
+Wallace_MFI_DifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Wallace_MFI_DifferenceDD_LONG <- gather(Wallace_MFI_DifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Wallace_MFI_DifferenceDD_LONG <- separate(data = Wallace_MFI_DifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Wallace_MFI_DifferenceDD_LONG$Peak<-gsub("Median","",as.character(Wallace_MFI_Difference_LONG$Peak))
+
+Wallace13 <- ggplot(Wallace_MFI_DifferenceDD_LONG, aes(x=Fluorochrome, y=Difference, color=Peak)) + geom_point() + ggtitle('Wallace: MFI Daily Difference by Fluorochrome')
+
+ggsave("Wallace13.png", Wallace13, width = 10, height = 5, units = c("in"))
+
+
+plot2<- Wallace_MFI_DifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Wallace: Distribution of MFI Difference Day to Day (06/14 to 06/18)') 
+
+ggsave("wallace2.png", plot2, width = 10, height = 5, units = c("in"))
+```
+
+
+
+```{r}
+
+Wallace_PMTV <- read_csv("Wallace/PMTV.csv")
+
+Wallace_PMTV <- Wallace_PMTV[c((-1:-2)),c(1,14:18)]
+
+colnames(Wallace_PMTV) <- c("Fluorochrome", "06/14", "06/15", "06/16", "06/17", "06/18")
+
+Wallace_PMTV_LONG <- gather(Wallace_PMTV, Date, Voltage , "06/14":"06/18", factor_key=TRUE)
+Wallace_PMTV_LONG$Fluorochrome[Wallace_PMTV_LONG$Fluorochrome == "PerCP-Cy5-5"] <- "PerCP-Cy5"
+Wallace_PMTV_LONG$Fluorochrome[Wallace_PMTV_LONG$Fluorochrome == "Alexa Fluor 700"] <- "Alexa700"
+
+Wallace_MASTERDD <- merge(Wallace_MFI_DifferenceDD_LONG, Wallace_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+#Wallace_MASTER$Difference <- abs(Wallace_MASTER$Difference)
+#Wallace_MASTER$Voltage <- abs(Wallace_MASTER$Voltage)
+
+Wallace5 = ggplot(Wallace_MASTERDD, aes(x = Fluorochrome, y = Difference)) + 
+  geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,30), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9))  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Peak, nrow=2) + ggtitle("Wallace: PMTV and MFI Difference by Fluorochrome")
+
+Wallace5
+
+ggsave("Wallace5.png", Wallace5, width = 10, height = 5, units = c("in"))
+
+
+
+Wallace10 <- Wallace_MASTERDD %>% filter(Peak=="Peak 1  ") %>% ggplot(aes(Fluorochrome, Difference)) + geom_point(aes(size = Voltage, fill = Date), alpha = 0.75, shape = 21) + 
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,50), breaks = c(-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9)) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Wallace: Peak 1 PMTV and MFI Difference by Fluorochrome")
+
+
+ggsave("Wallace10.png", Wallace10, width = 10, height = 7, units = c("in"))
+
+
+Wallace6 <- Wallace_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(Voltage, Difference)) + geom_point(aes(fill = Fluorochrome), alpha = 0.75, shape = 21) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Wallace: Peak 1 PMTV and MFI Difference by Fluorochrome") + facet_wrap(~Date, nrow=2) 
+
+Wallace6
+
+ggsave("Wallace6.png", Wallace6, width = 10, height = 5, units = c("in"))
+
+```
+
+```{r}
+Wallace14 <- Wallace_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 1 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace14
+
+ggsave("Wallace14.png", Wallace14, width = 10, height = 5, units = c("in"))
+
+
+Wallace15 <- Wallace_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace15
+
+ggsave("Wallace15.png", Wallace15, width = 10, height = 5, units = c("in"))
+
+
+Wallace16 <- Wallace_MASTERDD %>% filter(Peak == "Peak 2  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 2 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace16
+
+ggsave("Wallace16.png", Wallace16, width = 10, height = 5, units = c("in"))
+
+
+Wallace17 <- Wallace_MASTERDD %>% filter(Peak == "Peak 3  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 3 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace17
+
+ggsave("Wallace17.png", Wallace17, width = 10, height = 5, units = c("in"))
+
+Wallace18 <- Wallace_MASTERDD %>% filter(Peak == "Peak 4  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 4 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace18
+
+ggsave("Wallace18.png", Wallace18, width = 10, height = 5, units = c("in"))
+
+Wallace19 <- Wallace_MASTERDD %>% filter(Peak == "Peak 5  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 5 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace19
+
+ggsave("Wallace19.png", Wallace19, width = 10, height = 5, units = c("in"))
+
+
+
+Wallace20 <- Wallace_MASTERDD %>% filter(Peak == "Peak 6  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 6 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace20
+
+ggsave("Wallace20.png", Wallace20, width = 10, height = 5, units = c("in"))
+
+Wallace21 <- Wallace_MASTERDD %>% filter(Peak == "Peak 7  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 7 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace21
+
+ggsave("Wallace21.png", Wallace21, width = 10, height = 5, units = c("in"))
+
+
+Wallace22 <- Wallace_MASTERDD %>% filter(Peak == "Peak 8  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 8 MFI Daily Difference vs Voltage Change') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3)
+
+Wallace22
+
+ggsave("Wallace22.png", Wallace22, width = 10, height = 5, units = c("in"))
+
+
+Wallace23 <- Wallace_MASTERDD %>% filter(Fluorochrome == "BV510") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: BV510 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Wallace23.png", Wallace23, width = 7, height = 10, units = c("in"))
+
+
+Wallace24 <- Wallace_MASTERDD %>% filter(Fluorochrome == "BV421") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: BV421 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Wallace24.png", Wallace24, width = 7, height = 10, units = c("in"))
+
+Wallace25 <- Wallace_MASTERDD %>% filter(Fluorochrome == "BV786") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: BV786 MFI Daily Difference vs Voltage Change') + facet_grid(Peak ~ ., scales = "free")
+
+ggsave("Wallace25.png", Wallace25, width = 7, height = 10, units = c("in"))
+
+
+
+Wallace_MASTERDD$Instrument <- "Wallace"
+
+WG <- rbind(Wallace_MASTERDD, Gadget_MASTERDD)
+
+WG1 <- WG  %>%  ggplot(aes(x=Fluorochrome, y=Voltage, fill = Instrument)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Distribution of Voltages for Gadget and Wallace")
+
+
+ggsave("WG1.png", WG1, width = 10, height = 5, units = c("in"))
+
+
+
+
+
+```
+
+```{r}
+#Daily Percent Change
+Wallace_MFI_Day2D_PercentChange <- ((Wallace_MFI[2,]-Wallace_MFI[1,])/Wallace_MFI[1,]) * 100
+Wallace_MFI_Day3D_PercentChange <- ((Wallace_MFI[3,]-Wallace_MFI[2,])/Wallace_MFI[2,]) * 100
+Wallace_MFI_Day4D_PercentChange <- ((Wallace_MFI[4,]-Wallace_MFI[3,])/Wallace_MFI[3,]) * 100
+Wallace_MFI_Day5D_PercentChange <- ((Wallace_MFI[5,]-Wallace_MFI[4,])/Wallace_MFI[4,]) * 100
+
+
+Wallace_MFI_PercentDifferenceDD <- rbind(Wallace_MFI_Day2D_PercentChange,Wallace_MFI_Day3D_PercentChange,Wallace_MFI_Day4D_PercentChange,Wallace_MFI_Day5D_PercentChange)
+
+Wallace_MFI_PercentDifferenceDD$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Wallace_MFI_PercentDifferenceDD_LONG <- gather(Wallace_MFI_PercentDifferenceDD, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Wallace_MFI_PercentDifferenceDD_LONG <- separate(data = Wallace_MFI_PercentDifferenceDD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Wallace_MFI_PercentDifferenceDD_LONG$Peak<-gsub("Median","",as.character(Wallace_MFI_PercentDifferenceDD_LONG$Peak))
+
+
+Wallace7<- Wallace_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Wallace: Distribution of Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Wallace7.png", Wallace7, width = 10, height = 5, units = c("in"))
+
+
+Wallace8<- Wallace_MFI_PercentDifferenceDD_LONG %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Wallace: Daily MFI Percent Change (06/14 to 06/18)') 
+
+ggsave("Wallace8.png", Wallace8, width = 10, height = 5, units = c("in"))
+
+```
+
+% CHange vs Voltage
+
+```{r}
+
+Wallace_PC_MASTERDD <- merge(Wallace_MFI_PercentDifferenceDD_LONG, Wallace_PMTV_LONG, by = c("Date", "Fluorochrome"))
+
+
+Wallace30 <- Wallace_PC_MASTERDD %>% filter(Peak == "Peak 1  ") %>% ggplot(aes(x= Voltage, y=Difference)) + geom_point() + ggtitle('Wallace: Peak 1 MFI % Change vs Voltage Change') + theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ylab("% Change")
+
+Wallace30
+
+ggsave("Wallace30.png", Wallace30, width = 10, height = 5, units = c("in"))
+
+```
+
+
+#Daily Percent Change from Baseseline
+```{r}
+Wallace_MFI_Base_PercentChange2 <- ((Wallace_MFI[2,]-Wallace_MFI[1,])/Wallace_MFI[1,]) * 100
+Wallace_MFI_Base_PercentChange3 <- ((Wallace_MFI[3,]-Wallace_MFI[1,])/Wallace_MFI[1,]) * 100
+Wallace_MFI_Base_PercentChange4 <- ((Wallace_MFI[4,]-Wallace_MFI[1,])/Wallace_MFI[1,]) * 100
+Wallace_MFI_Base_PercentChange5 <- ((Wallace_MFI[5,]-Wallace_MFI[1,])/Wallace_MFI[1,]) * 100
+
+
+Wallace_MFI_Base_PercentDifference <- rbind(Wallace_MFI_Base_PercentChange2,Wallace_MFI_Base_PercentChange3,Wallace_MFI_Base_PercentChange4,Wallace_MFI_Base_PercentChange5)
+
+Wallace_MFI_Base_PercentDifference$Date <- c("06/15", "06/16", "06/17", "06/18")
+
+Wallace_MFI_Base_PercentDifference_LONG <- gather(Wallace_MFI_Base_PercentDifference, Peak, Difference, "Alexa700 Peak 1  Median":"PerCP-Cy5 Peak 7  Median", factor_key=TRUE)
+
+Wallace_MFI_Base_PercentDifference_LONG <- separate(data = Wallace_MFI_Base_PercentDifference_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+
+Wallace_MFI_Base_PercentDifference_LONG$Peak<-gsub("Median","",as.character(Wallace_MFI_Base_PercentDifference_LONG$Peak))
+
+
+Wallace7<- Wallace_MFI_Base_PercentDifference_LONG %>% ggplot(aes(x=Peak, y= Difference)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Wallace: Distribution of MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Wallace7.png", Wallace7, width = 10, height = 5, units = c("in"))
+
+
+Wallace8<-  Wallace_MFI_Base_PercentDifference_LONG  %>% ggplot(aes(x=Date, y= Difference, group=Peak, color=Peak)) + geom_line() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3, scales = "free") + ggtitle('Wallace: Daily MFI Percent Change from Baseline (06/14 to 06/18)') 
+
+ggsave("Wallace8.png", Wallace8, width = 10, height = 5, units = c("in"))
+
+```
+
+
+```{r}
+
+Wallace_RCV <- Wallace %>% select(contains("Robust CV"))
+
+Wallace_RCV$`BUV396 Peak 1  Robust CV` <- Wallace_RCV$`BUV396 Peak 3  Robust CV`
+
+Wallace_RCV$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+
+Wallace_RCV_LONG <- gather(Wallace_RCV, Peak, RCV, "Alexa700 Peak 1  Robust CV":"PerCP-Cy5 Peak 7  Robust CV", factor_key=TRUE)
+
+Wallace_RCV_LONG <- separate(data = Wallace_RCV_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Wallace_RCV_LONG$Peak<-gsub("Robust CV","",as.character(Wallace_RCV_LONG$Peak))
+
+
+Wallace7 <- ggplot(Wallace_RCV_LONG, aes(x=Peak, y=RCV)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Wallace: Distribution of RCV (06/14 to 06/18)') 
+
+Wallace8 <- Wallace7 + coord_cartesian( ylim = c(0, 10) )
+
+
+ggsave("WallaceRCV1.png", Wallace7, width = 10, height = 5, units = c("in"))
+
+ggsave("WallaceRCV2.png", Wallace8, width = 10, height = 5, units = c("in"))
+
+Wallace8
+
+```
+
+
+
+rSD Data
+```{r}
+Wallace_rSD <- Wallace %>% select(contains("Robust SD"))
+Wallace_rSD$Date <- c("06/14","06/15", "06/16", "06/17", "06/18")
+Wallace_rSD_LONG <- gather(Wallace_rSD, Peak, rSD, "Alexa700 Peak 1  Robust SD":"PerCP-Cy5 Peak 7  Robust SD", factor_key=TRUE)
+
+Wallace_rSD_LONG <- separate(data = Wallace_rSD_LONG, col = Peak, into = c("Fluorochrome", "Peak"), sep = " ", extra = "merge")
+
+Wallace_rSD_LONG$Peak<-gsub("Robust SD","",as.character(Wallace_rSD_LONG$Peak))
+
+Wallace_rSD_LONG %>% filter(Fluorochrome== "BV510" & Peak == "Peak 1  ")
+
+Wallace_rSD_plot <- ggplot(Wallace_rSD_LONG, aes(x=Peak, y=rSD)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + facet_wrap(~Fluorochrome, nrow=3) + ggtitle('Wallace: Distribution of rSD (06/14 to 06/18)') 
+
+
+```
+
+
+```{r}
+
+Wallace_StainIndex <- data.frame(Wallace_MFI_Peak1_Long$Date, Wallace_MFI_Peak1_Long$Fluorochrome, Wallace_MFI_Peak1_Long$MFI, Wallace_MFI_Peak4_Long$MFI)
+
+colnames(Wallace_StainIndex) <- c("Date", "Fluorochrome", "Peak 1 MFI", "Peak 4 MFI")
+Wallace_StainIndex$`Peak 1 - Peak 4` <- Wallace_MFI_Peak1_Long$MFI - Wallace_MFI_Peak4_Long$MFI
+
+
+Wallace_StainIndex 
+
+
+Wallace_Peak4_rSD <- Wallace_rSD_LONG %>% filter(Peak == "Peak 4  ")
+
+Wallace_StainIndex <- merge(Wallace_StainIndex,Wallace_Peak4_rSD, by = c("Date", "Fluorochrome"))
+
+Wallace_StainIndex$`Stain Index` <- Wallace_StainIndex$`Peak 1 - Peak 4`/(2*Wallace_StainIndex$rSD)
+
+Wallace_StainIndex %>% ggplot(aes(x=Date, y=`Stain Index`)) + geom_line() + geom_point() + facet_wrap(~Fluorochrome, nrow=3) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Wallace: Stain Index")
+
+
+Wallace_StainIndex %>% filter(Fluorochrome == "BV510")
+```
+
+
+Wallace % Change in Stain Index from Baseline
+```{r}
+Wallace_StainIndex2 <- Wallace_StainIndex[,-c(3:7)]
+Wallace_StainIndex_Wide <- spread(Wallace_StainIndex2, Date, `Stain Index`)
+
+Wallace_StainIndex_Wide$Day2Change <- ((Wallace_StainIndex_Wide$`06/15` - Wallace_StainIndex_Wide$`06/14`)/Wallace_StainIndex_Wide$`06/14`) * 100
+Wallace_StainIndex_Wide$Day3Change <- ((Wallace_StainIndex_Wide$`06/16` - Wallace_StainIndex_Wide$`06/14`)/Wallace_StainIndex_Wide$`06/14`) * 100
+Wallace_StainIndex_Wide$Day4Change <- ((Wallace_StainIndex_Wide$`06/17` - Wallace_StainIndex_Wide$`06/14`)/Wallace_StainIndex_Wide$`06/14`) * 100
+Wallace_StainIndex_Wide$Day5Change <- ((Wallace_StainIndex_Wide$`06/18` - Wallace_StainIndex_Wide$`06/14`)/Wallace_StainIndex_Wide$`06/14`) * 100
+
+Wallace_StainIndex_Wide %>% filter(Fluorochrome == "BV510")
+```
